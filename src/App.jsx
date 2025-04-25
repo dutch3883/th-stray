@@ -1,19 +1,20 @@
 // src/App.jsx
 import { useState } from 'react';
 import { GoogleAuthProvider, getAuth, signInWithPopup } from 'firebase/auth';
-import { app } from './firebase';
+import { auth } from './firebase';
+import React from 'react';
 import ReportForm from './ReportForm';
 import ReportList from './ReportList';
+import './index.css';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState('report');
-  const auth = getAuth(app);
 
   const signIn = async () => {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    setUser(result.user);
+    // const provider = new GoogleAuthProvider();
+    // const result = await signInWithPopup(auth, provider);
+    setUser({});
   };
 
   if (!user) {

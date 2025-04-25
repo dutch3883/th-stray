@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from './firebase';
+import './index.css';
+import React from 'react'
 
 export default function ReportForm({ user }) {
   const [numCats, setNumCats] = useState('1');

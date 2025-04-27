@@ -22,7 +22,7 @@ jobs:
         with:
           token_format: 'access_token'
           workload_identity_provider: 'projects/334635767532/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider'
-          service_account: 'firebase-deployer@th-stray.iam.gserviceaccount.com'
+          service_account: 'cloud-function-backend@th-stray.iam.gserviceaccount.com'
 
       # ③ Use gcloud normally — auth step already puts credentials in place
       - name: 'Cloud Build submit'

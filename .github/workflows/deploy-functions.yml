@@ -4,7 +4,7 @@ name: Build & deploy Cloud Functions (WIF)
 on:
   push:
     branches: [main]
-    paths: ['functions/**']
+    # paths: ['functions/**']
 
 jobs:
   deploy:

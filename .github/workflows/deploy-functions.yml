@@ -1,0 +1,29 @@
+# .github/workflows/deploy-functions.yml
+name: Build & deploy Cloud Functions (WIF)
+
+on:
+  push:
+    branches: [main]
+    paths: ['functions/**']
+
+jobs:
+  deploy:
+    permissions:             # ① give the workflow an OIDC token
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ② Authenticate to GCP via Workload Identity Federation
+      - id: 'auth'
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: 'access_token'
+          workload_identity_provider: 'projects/334635767532/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider'
+          service_account: 'firebase-deployer@th-stray.iam.gserviceaccount.com'
+
+      # ③ Use gcloud normally — auth step already puts credentials in place
+      - name: 'Cloud Build submit'
+        run: gcloud builds submit --config functions/cloudbuild.yaml ./functions

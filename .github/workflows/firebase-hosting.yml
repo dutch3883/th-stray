@@ -1,0 +1,31 @@
+name: Deploy to Firebase Hosting (Secure)
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          token_format: 'access_token'
+          workload_identity_provider: 'projects/334635767532/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider'
+          service_account: 'firebase-deployer@th-stray.iam.gserviceaccount.com'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy to Firebase Hosting
+        run: firebase deploy --only hosting

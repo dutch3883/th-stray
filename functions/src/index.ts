@@ -1,5 +1,5 @@
 // functions/src/index.ts
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v2';
 import * as admin     from 'firebase-admin';
 import { checkAuth }  from './utils/auth';
 
@@ -8,10 +8,10 @@ admin.initializeApp();                 // service account auto-injected in build
 const db = admin.firestore();
 
 /** POST /createReport  (callable) */
-export const createReport = functions.https.onCall(async (data, ctx) => {
-  const uid = checkAuth(ctx);          // throws 401 if no ID-token
+export const createReport = functions.https.onCall(async (request) => {
+  const uid = checkAuth(request);          // throws 401 if no ID-token
   const doc = await db.collection('reports').add({
-    ...data,
+    ...request,
     uid,
     status: 'pending',
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -20,8 +20,8 @@ export const createReport = functions.https.onCall(async (data, ctx) => {
 });
 
 /** GET /listMyReports */
-export const listMyReports = functions.https.onCall(async (data, ctx) => {
-  const uid = checkAuth(ctx);
+export const listMyReports = functions.https.onCall(async (request) => {
+  const uid = checkAuth(request);
   const q = db.collection('reports')
               .where('uid', '==', uid)
               .orderBy('createdAt', 'desc');

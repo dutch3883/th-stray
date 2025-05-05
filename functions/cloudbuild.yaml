@@ -1,33 +1,36 @@
-# functions/cloudbuild.yaml
 steps:
-  # 1) Install deps (cached layer)
-  - id: 'npm-ci'
-    name: 'gcr.io/cloud-builders/npm'
-    dir: 'functions'
-    args: ['ci', '--ignore-scripts']
-
-  # 2) TypeScript compile
-  - id: 'tsc'
-    name: 'gcr.io/cloud-builders/npm'
-    dir: 'functions'
+  # 1) compile TypeScript
+  - id: tsc
+    name: gcr.io/cloud-builders/npm
+    dir: functions
     args: ['run', 'build']
-    env: ['NODE_ENV=production']
 
-  # 3) Deploy only changed Functions (beta)  
-  - id: 'deploy-fns'
-    name: 'gcr.io/cloud-builders/gcloud'
-    dir: 'functions'
-    entrypoint: gcloud
+  # 2) deploy createReport
+  - id: deploy-create
+    name: gcr.io/cloud-builders/gcloud
+    dir: functions
     args:
       [
-        'functions', 'deploy', 'createReport', 'listMyReports',
+        'functions', 'deploy', 'createReport',
         '--region=asia-southeast1',
         '--runtime=nodejs20',
         '--source=.',
-        '--entry-point=index',
-        '--trigger-call',
-        '--allow-unauthenticated'   # remove if you want only authed calls
+        '--entry-point', 'createReport',
+        '--trigger-http',
+        '--allow-unauthenticated'
       ]
-    # For multiple functions you can deploy "*" in one step if using v2.
 
-timeout: 900s
+  # 3) deploy listMyReports
+  - id: deploy-list
+    name: gcr.io/cloud-builders/gcloud
+    dir: functions
+    args:
+      [
+        'functions', 'deploy', 'listMyReports',
+        '--region=asia-southeast1',
+        '--runtime=nodejs20',
+        '--source=.',
+        '--entry-point', 'listMyReports',
+        '--trigger-http',
+        '--allow-unauthenticated'
+      ]

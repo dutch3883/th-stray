@@ -43,10 +43,10 @@ const db = admin.firestore();
 /** POST /createReport  (callable) */
 exports.createReport = functions.https.onCall(async (request) => {
     const uid = (0, auth_1.checkAuth)(request); // throws 401 if no ID-token
-    const doc = await db.collection('reports').add({
+    const doc = await db.collection("reports").add({
         ...request,
         uid,
-        status: 'pending',
+        status: "pending",
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     return { id: doc.id };
@@ -54,10 +54,11 @@ exports.createReport = functions.https.onCall(async (request) => {
 /** GET /listMyReports */
 exports.listMyReports = functions.https.onCall(async (request) => {
     const uid = (0, auth_1.checkAuth)(request);
-    const q = db.collection('reports')
-        .where('uid', '==', uid)
-        .orderBy('createdAt', 'desc');
+    const q = db
+        .collection("reports")
+        .where("uid", "==", uid)
+        .orderBy("createdAt", "desc");
     const snap = await q.get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 });
 //# sourceMappingURL=index.js.map

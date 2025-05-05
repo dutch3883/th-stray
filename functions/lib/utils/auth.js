@@ -37,9 +37,9 @@ exports.checkAuth = checkAuth;
 const functions = __importStar(require("firebase-functions/v2"));
 function checkAuth(ctx, requireAdmin = false) {
     if (!ctx.auth)
-        throw new functions.https.HttpsError('unauthenticated', 'Auth required');
+        throw new functions.https.HttpsError("unauthenticated", "Auth required");
     if (requireAdmin && !ctx.auth.token.admin)
-        throw new functions.https.HttpsError('permission-denied', 'Admin only');
+        throw new functions.https.HttpsError("permission-denied", "Admin only");
     return ctx.auth.uid;
 }
 //# sourceMappingURL=auth.js.map

@@ -1,19 +1,19 @@
 // functions/src/index.ts
-import * as functions from 'firebase-functions/v2';
-import * as admin     from 'firebase-admin';
-import { checkAuth }  from './utils/auth';
+import * as functions from "firebase-functions/v2";
+import * as admin from "firebase-admin";
+import { checkAuth } from "./utils/auth";
 
-admin.initializeApp();                 // service account auto-injected in build
+admin.initializeApp(); // service account auto-injected in build
 
 const db = admin.firestore();
 
 /** POST /createReport  (callable) */
 export const createReport = functions.https.onCall(async (request) => {
-  const uid = checkAuth(request);          // throws 401 if no ID-token
-  const doc = await db.collection('reports').add({
+  const uid = checkAuth(request); // throws 401 if no ID-token
+  const doc = await db.collection("reports").add({
     ...request,
     uid,
-    status: 'pending',
+    status: "pending",
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   return { id: doc.id };
@@ -22,9 +22,10 @@ export const createReport = functions.https.onCall(async (request) => {
 /** GET /listMyReports */
 export const listMyReports = functions.https.onCall(async (request) => {
   const uid = checkAuth(request);
-  const q = db.collection('reports')
-              .where('uid', '==', uid)
-              .orderBy('createdAt', 'desc');
+  const q = db
+    .collection("reports")
+    .where("uid", "==", uid)
+    .orderBy("createdAt", "desc");
   const snap = await q.get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 });

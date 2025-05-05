@@ -1,28 +1,44 @@
 module.exports = {
+  root: true,               // stop ESLint from looking in parent folders
   env: {
-    es6: true,
-    node: true,
+    browser: true,
+    node:    true,
+    es2021:  true,
   },
+  parser: '@typescript-eslint/parser',  // so ESLint can read TS
   parserOptions: {
-    "ecmaVersion": 2018,
+    ecmaVersion: 12,        // allow modern ECMAScript features
+    sourceType: 'module',   // allow import/export
+    project: './tsconfig.json',  // needed for certain TS rules
   },
   extends: [
-    "eslint:recommended",
-    "google",
+    'eslint:recommended',           // basic JS rules
+    'plugin:@typescript-eslint/recommended',  // TS rules
+    'plugin:prettier/recommended',  // run Prettier as an ESLint rule
+  ],
+  plugins: [
+    '@typescript-eslint', // TS-specific linting rules
+    'prettier',           // shows formatting errors as ESLint errors
   ],
   rules: {
-    "no-restricted-globals": ["error", "name", "length"],
-    "prefer-arrow-callback": "error",
-    "quotes": ["error", "double", {"allowTemplateLiterals": true}],
+    // override or add rules here:
+    'prettier/prettier': 'error',      // fail on Prettier violations
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    // etc.
   },
   overrides: [
     {
-      files: ["**/*.spec.*"],
-      env: {
-        mocha: true,
+      files: ['*.ts', '*.tsx'],
+      rules: {
+        // TS‑only overrides
       },
-      rules: {},
+    },
+    {
+      files: ['*.js'],
+      rules: {
+        // JS‑only overrides
+      },
     },
   ],
-  globals: {},
 };

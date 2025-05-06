@@ -44,5 +44,5 @@ jobs:
 
       - name: Deploy to Firebase Hosting
         run: |
-          echo "google map key $VITE_GOOGLE_MAPS_KEY"
+          env
           firebase deploy --only hosting

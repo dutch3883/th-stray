@@ -1,5 +1,7 @@
 {
     "compilerOptions": {
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
       /* === target & module === */
       "target": "ES2020",                // Node 20 supports ES2020 natively
       "module": "commonjs",              // Cloud Functions still expect CJS

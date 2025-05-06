@@ -10,15 +10,18 @@
         "build": "tsc -p tsconfig.json",
         "lint": "eslint src --ext .ts,.js",
         "fix": "eslint src --fix --ext .ts,.js",
-        "serve": "npm run build && firebase emulators:start --only functions",
+        "serve": "npm run build && firebase emulators:start --only functions,auth,firestore",
         "shell": "npm run build && firebase functions:shell",
         "start": "npm run shell",
         "deploy": "npm run build && firebase deploy --only functions",
         "logs": "firebase functions:log"
     },
     "dependencies": {
+        "class-transformer": "^0.5.1",
+        "class-validator": "^0.14.2",
         "firebase-admin": "^12.6.0",
-        "firebase-functions": "^6.0.1"
+        "firebase-functions": "^6.0.1",
+        "reflect-metadata": "^0.2.2"
     },
     "devDependencies": {
         "@types/node": "^18.19.87",

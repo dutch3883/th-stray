@@ -9,9 +9,12 @@ const storage = getStorage(app);
  * and return its public download URL.
  */
 export async function uploadImageAndGetUrl(path: string, file: File): Promise<string> {
-  const storageRef = ref(storage, path);
-  // uploadBytes will use your Firebase Auth token under the hood
-  await uploadBytes(storageRef, file);
-  // once uploaded, get a public URL
-  return getDownloadURL(storageRef);
+  try {
+    const storageRef = ref(storage, path);
+    await uploadBytes(storageRef, file);
+    return getDownloadURL(storageRef);
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    throw new Error('Failed to upload image');
+  }
 }

@@ -1,0 +1,39 @@
+rules_version = '2';
+
+// Craft rules based on data in your Firestore database
+// allow write: if firestore.get(
+//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*')
+        && request.resource.size <= 5 * 1024 * 1024; // 5MB max
+    }
+
+    // Report images: /reports/{userId}/{imageId}
+    match /reports/{userId}/{imageId} {
+      // Allow read for authenticated users
+      allow read: if isAuthenticated();
+      
+      // Allow create if:
+      // 1. User is authenticated
+      // 2. User is uploading to their own folder
+      // 3. File is an image under 5MB
+      allow create: if isAuthenticated() 
+        && isOwner(userId)
+        && isValidImage();
+        
+      // Allow delete if user owns the image
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+  }
+}

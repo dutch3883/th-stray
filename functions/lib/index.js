@@ -110,7 +110,7 @@ exports.createReport = functions.https.onCall(async (req) => {
     const plain = (0, class_transformer_1.instanceToPlain)(dto);
     if (errs.length) {
         logger.warn("validation failed", { errs });
-        throw new https_1.HttpsError("invalid-argument", `Invalid data ${req}`);
+        throw new https_1.HttpsError("invalid-argument", `Invalid data ${JSON.stringify(errs)}`);
     }
     try {
         logger.info(`try create with ${plain}`);
@@ -143,7 +143,7 @@ exports.listMyReports = functions.https.onCall(async (req) => {
     }
     catch (e) {
         logger.error("firestore error", e);
-        throw new https_1.HttpsError("internal", "Could not fetch reports");
+        throw new https_1.HttpsError("internal", `Could not fetch reports. Error: ${e}`);
     }
 });
 //# sourceMappingURL=index.js.map

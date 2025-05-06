@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { app } from './firebase';
+import { createReport } from './services/apiService';
+import { uploadImageAndGetUrl } from './services/storageService';
 import LocationPicker from './LocationPicker';
 
 interface Location {
@@ -14,30 +14,18 @@ interface ReportFormProps {
   user: User;
 }
 
-interface CreateReportData {
-  numberOfCats: string;
-  type: string;
-  contactPhone: string;
-  images: string[];
-  location: {
-    lat: number;
-    long: number;
-    description: string;
-  };
-}
-
 export default function ReportForm({ user }: ReportFormProps) {
   /* ───── form state ───── */
   const [numCats, setNumCats] = useState<string>('1');
-  const [type, setType] = useState<string>('stray');
+  const [type, setType] = useState<'stray' | 'injured' | 'sick' | 'kitten'>('stray');
   const [phone, setPhone] = useState<string>('');
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [location, setLocation] = useState<Location | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   /* ───── modal toggle ───── */
   const [showPicker, setShowPicker] = useState<boolean>(false);
-
-  const functions = getFunctions(app);
 
   /* ───── submit handler ───── */
   const handleSubmit = async (): Promise<void> => {
@@ -46,13 +34,28 @@ export default function ReportForm({ user }: ReportFormProps) {
       return;
     }
 
+    if (!phone) {
+      alert('กรุณากรอกเบอร์โทรติดต่อ');
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      const createReport = httpsCallable<CreateReportData, void>(functions, 'createReport');
+      // Upload images first and get their URLs
+      const uploadPromises = images.map((file, index) => {
+        const path = `reports/${user.uid}/${Date.now()}-${index}.${file.name.split('.').pop()}`;
+        return uploadImageAndGetUrl(path, file);
+      });
+
+      const uploadedImageUrls = await Promise.all(uploadPromises);
+
+      // Create report with uploaded image URLs and converted number
       await createReport({
-        numberOfCats: numCats,
+        numberOfCats: numCats === 'not sure' ? 0 : parseInt(numCats, 10),
         type,
         contactPhone: phone,
-        images,
+        images: uploadedImageUrls,
         location: {
           lat: location.lat,
           long: location.lng,
@@ -66,29 +69,34 @@ export default function ReportForm({ user }: ReportFormProps) {
       setType('stray');
       setPhone('');
       setImages([]);
+      setImagePreviewUrls([]);
       setLocation(null);
     } catch (err) {
       console.error(err);
       alert('ส่งรายงานไม่สำเร็จ โปรดลองอีกครั้ง');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  /* ───── image -> data-URL preview ───── */
+  /* ───── image handling ───── */
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
     if (!e.target.files) return;
     
     const files = Array.from(e.target.files).slice(0, 3);
-    Promise.all(
-      files.map(
-        (f) =>
-          new Promise<string>((res) => {
-            const reader = new FileReader();
-            reader.onload = () => res(reader.result as string);
-            reader.readAsDataURL(f);
-          })
-      )
-    ).then(setImages);
+    setImages(files);
+
+    // Create preview URLs
+    const previewUrls = files.map(file => URL.createObjectURL(file));
+    setImagePreviewUrls(previewUrls);
   };
+
+  // Cleanup preview URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      imagePreviewUrls.forEach(URL.revokeObjectURL);
+    };
+  }, [imagePreviewUrls]);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -115,6 +123,7 @@ export default function ReportForm({ user }: ReportFormProps) {
             value={numCats}
             onChange={(e) => setNumCats(e.target.value)}
             className="w-full border rounded p-2"
+            disabled={isSubmitting}
           >
             {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
               <option key={n} value={n}>{n}</option>
@@ -128,8 +137,15 @@ export default function ReportForm({ user }: ReportFormProps) {
           <label className="block mb-1 font-medium">ประเภท</label>
           <select
             value={type}
-            onChange={(e) => setType(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Type assertion to tell TypeScript this value is one of the allowed types
+              if (value === 'stray' || value === 'injured' || value === 'sick' || value === 'kitten') {
+                setType(value);
+              }
+            }}
             className="w-full border rounded p-2"
+            disabled={isSubmitting}
           >
             <option value="stray">แมวจร</option>
             <option value="injured">บาดเจ็บ</option>
@@ -143,9 +159,13 @@ export default function ReportForm({ user }: ReportFormProps) {
           <label className="block mb-1 font-medium">เบอร์โทรติดต่อ</label>
           <input
             type="tel"
+            pattern="[0-9]*"
+            inputMode="numeric"
+            placeholder="0812345678"
             className="w-full border rounded p-2"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            disabled={isSubmitting}
           />
         </div>
 
@@ -156,14 +176,16 @@ export default function ReportForm({ user }: ReportFormProps) {
             type="file" 
             accept="image/*" 
             multiple 
-            onChange={handleImageUpload} 
+            onChange={handleImageUpload}
+            disabled={isSubmitting}
+            className="w-full"
           />
-          {images.length > 0 && (
+          {imagePreviewUrls.length > 0 && (
             <div className="flex gap-2 mt-2">
-              {images.map((src, idx) => (
+              {imagePreviewUrls.map((url, idx) => (
                 <img
                   key={idx}
-                  src={src}
+                  src={url}
                   alt={`cat-${idx}`}
                   className="w-20 h-20 object-cover rounded"
                 />
@@ -178,6 +200,7 @@ export default function ReportForm({ user }: ReportFormProps) {
           <button
             type="button"
             onClick={() => setShowPicker(true)}
+            disabled={isSubmitting}
             className="w-full bg-yellow-500 text-white py-2 rounded-lg"
           >
             เลือกตำแหน่งบนแผนที่
@@ -196,9 +219,12 @@ export default function ReportForm({ user }: ReportFormProps) {
         <button
           type="button"
           onClick={handleSubmit}
-          className="w-full bg-blue-600 text-white py-3 rounded-lg text-lg"
+          disabled={isSubmitting}
+          className={`w-full bg-blue-600 text-white py-3 rounded-lg text-lg ${
+            isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         >
-          ส่งรายงาน
+          {isSubmitting ? 'กำลังส่งรายงาน...' : 'ส่งรายงาน'}
         </button>
       </div>
     </div>

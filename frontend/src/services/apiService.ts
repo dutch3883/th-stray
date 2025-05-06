@@ -50,3 +50,9 @@ export function adminChangeStatus(
 ): Promise<{ ok: boolean }> {
   return call('changeStatus', params);
 }
+
+export interface Location {
+  lat: number;
+  long: number;
+  description: string;
+}

@@ -27,6 +27,7 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
     region: TH_REGION,
   });
 
+  
   console.log(`Google maps key: ${JSON.stringify(import.meta.env)}`);
 
   const [center, setCenter] = useState<google.maps.LatLngLiteral>(initialLocation ?? fallbackCenter);
@@ -84,19 +85,20 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
   /* ───── UI ───── */
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
-      {/* Bottom sheet on mobile, centred card on ≥sm */}
-      <div className="bg-white w-full sm:w-[92%] sm:max-w-xl h-[85vh] sm:h-auto rounded-t-2xl sm:rounded-lg shadow-lg flex flex-col">
+      <div className="bg-white w-full sm:w-[92%] sm:max-w-xl h-[70vh] sm:h-auto rounded-t-2xl sm:rounded-lg shadow-lg flex flex-col">
         {/* Drag handle for mobile sheet */}
         <div className="sm:hidden w-12 h-1.5 bg-gray-300 rounded-full mx-auto mt-2 mb-1"></div>
-
-        <h2 className="text-lg font-bold text-center px-4">เลือกตำแหน่งของแมว</h2>
-
-        <p className="text-sm text-gray-700 line-clamp-2 px-4">{address}</p>
-
-        {/* Map section */}
-        <div className="relative flex-1">
+  
+        {/* Header */}
+        <div className="px-4">
+          <h2 className="text-lg font-bold text-center pb-2">เลือกตำแหน่งของแมว</h2>
+          <p className="text-sm text-gray-700 line-clamp-2 pb-2">{address}</p>
+        </div>
+  
+        {/* Map container - takes remaining space */}
+        <div className="flex-1 relative">
           <GoogleMap
-            mapContainerStyle={containerStyle}
+            mapContainerStyle={{ width: '100%', height: '100%' }}
             center={center}
             zoom={16}
             onLoad={setMapRef}
@@ -114,22 +116,27 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
             </svg>
           </div>
         </div>
-
-        {/* Action buttons */}
-        <div className="flex justify-end gap-2 p-4 border-t">
-          {onCancel && (
-            <button onClick={onCancel} className="flex-1 sm:flex-none px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
-              ยกเลิก
+  
+        {/* Action buttons - fixed to bottom */}
+        <div className="p-4 bg-white border-t mt-auto">
+          <div className="flex gap-2">
+            {onCancel && (
+              <button 
+                onClick={onCancel} 
+                className="flex-1 px-4 py-3 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                ยกเลิก
+              </button>
+            )}
+            <button
+              onClick={() => onConfirm({ ...center, description: address })}
+              className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              ยืนยัน
             </button>
-          )}
-          <button
-            onClick={() => onConfirm({ ...center, description: address })}
-            className="flex-1 sm:flex-none px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          >
-            ยืนยัน
-          </button>
+          </div>
         </div>
       </div>
     </div>
   );
-} 
+}

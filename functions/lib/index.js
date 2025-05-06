@@ -125,7 +125,7 @@ exports.createReport = functions.https.onCall(async (req) => {
     }
     catch (e) {
         logger.error("firestore error", e);
-        throw new https_1.HttpsError("internal", `Could not create report ${e} with data ${plain}`);
+        throw new https_1.HttpsError("internal", `Could not create report ${e} with data`);
     }
 });
 exports.listMyReports = functions.https.onCall(async (req) => {

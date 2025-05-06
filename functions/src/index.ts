@@ -1,6 +1,6 @@
 // functions/src/index.ts
 import "reflect-metadata";
-import { instanceToPlain, plainToInstance, Type } from 'class-transformer';
+import { instanceToPlain, plainToInstance, Type } from "class-transformer";
 import {
   validate,
   IsEnum,
@@ -38,7 +38,7 @@ class CreateReportDto {
   @IsEnum(CatType) type!: CatType;
   @IsString() contactPhone!: string;
   @IsArray() @ArrayMaxSize(3) @IsString({ each: true }) images!: string[];
-  @ValidateNested() 
+  @ValidateNested()
   @Type(() => LocationDto)
   location!: LocationDto;
 }
@@ -49,13 +49,13 @@ export const createReport = functions.https.onCall(async (req) => {
   const uid = checkAuth(req);
   const dto = plainToInstance(CreateReportDto, req.data);
   const errs = await validate(dto);
-  const plain = instanceToPlain(dto)
+  const plain = instanceToPlain(dto);
   if (errs.length) {
     logger.warn("validation failed", { errs });
     throw new HttpsError("invalid-argument", `Invalid data ${req}`);
   }
   try {
-    logger.info(`try create with ${plain}`)
+    logger.info(`try create with ${plain}`);
     const ref = await db.collection("reports").add({
       ...plain,
       uid,

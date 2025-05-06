@@ -1,29 +1,44 @@
 # .github/workflows/deploy-functions.yml
-name: Build & deploy Cloud Functions (WIF)
+name: Deploy Firebase Functions (WIF)
 
 on:
   push:
     branches: [main]
-    # paths: ['functions/**']
+    paths:
+      - 'functions/**'
+      - 'firebase.json'
+      - '.firebaserc'
+
+permissions:
+  id-token: write    # needed to mint the OIDC token
+  contents: read
 
 jobs:
   deploy:
-    permissions:             # ① give the workflow an OIDC token
-      id-token: write
-      contents: read
     runs-on: ubuntu-latest
 
     steps:
+      # 1) checkout your code
       - uses: actions/checkout@v4
 
-      # ② Authenticate to GCP via Workload Identity Federation
-      - id: 'auth'
+      # 2) authenticate to GCP via Workload Identity Federation
+      - id: auth
         uses: google-github-actions/auth@v2
         with:
-          token_format: 'access_token'
           workload_identity_provider: 'projects/334635767532/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider'
           service_account: 'cloud-function-backend@th-stray.iam.gserviceaccount.com'
 
-      # ③ Use gcloud normally — auth step already puts credentials in place
-      - name: 'Cloud Build submit'
-        run: gcloud builds submit --config functions/cloudbuild.yaml ./functions
+      # 3) install Firebase CLI (it will use the ADC we just configured)
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+
+      # 4) use Node to build and deploy your TS Functions
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install Functions dependencies
+        run: npm ci --prefix functions
+      - name: Build Functions
+        run: npm run deploy --prefix functions

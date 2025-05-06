@@ -6,7 +6,7 @@ export default defineConfig({
   define: {
     'process.env': {}
   },
-  server : {
+  server: {
     allowedHosts: true
   }
-})
+}) 

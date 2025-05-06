@@ -1,15 +1,28 @@
-// src/ReportList.jsx
 import { useEffect, useState } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { User } from 'firebase/auth';
 import { app } from './firebase';
 
-export default function ReportList({ user }) {
-  const [reports, setReports] = useState([]);
+interface Report {
+  type: string;
+  numberOfCats: number;
+  status: 'submitted' | 'completed' | 'cancelled';
+  location?: {
+    description: string;
+  };
+}
+
+interface ReportListProps {
+  user: User;
+}
+
+export default function ReportList({ user }: ReportListProps) {
+  const [reports, setReports] = useState<Report[]>([]);
 
   useEffect(() => {
-    const fetchReports = async () => {
+    const fetchReports = async (): Promise<void> => {
       const functions = getFunctions(app);
-      const getUserReports = httpsCallable(functions, 'getUserReports');
+      const getUserReports = httpsCallable<void, Report[]>(functions, 'getUserReports');
       const result = await getUserReports();
       setReports(result.data);
     };
@@ -34,4 +47,4 @@ export default function ReportList({ user }) {
       ))}
     </div>
   );
-}
+} 

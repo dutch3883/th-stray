@@ -1,13 +1,24 @@
-// src/LocationPicker.jsx — mobile‑friendly bottom‑sheet modal (Thai, no Plus Code)
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+
+interface Location {
+  lat: number;
+  lng: number;
+  description: string;
+}
+
+interface LocationPickerProps {
+  initialLocation: Location | null;
+  onConfirm: (location: Location) => void;
+  onCancel?: () => void;
+}
 
 const containerStyle = { width: '100%', height: '60vh' }; // responsive map height
 const fallbackCenter = { lat: 13.7563, lng: 100.5018 };   // Bangkok
 const TH_LANG = 'th';
 const TH_REGION = 'TH';
 
-export default function LocationPicker({ initialLocation, onConfirm, onCancel }) {
+export default function LocationPicker({ initialLocation, onConfirm, onCancel }: LocationPickerProps) {
   /* ───── Load Maps JS API in Thai ───── */
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
@@ -16,10 +27,12 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel })
     region: TH_REGION,
   });
 
-  const [center, setCenter] = useState(initialLocation ?? fallbackCenter);
-  const [address, setAddress] = useState(initialLocation?.description ?? 'กำลังค้นหาที่อยู่…');
-  const [mapRef, setMapRef] = useState(null);
-  const [geocoder, setGeocoder] = useState(null);
+  console.log(`Google maps key: ${JSON.stringify(import.meta.env)}`);
+
+  const [center, setCenter] = useState<google.maps.LatLngLiteral>(initialLocation ?? fallbackCenter);
+  const [address, setAddress] = useState<string>(initialLocation?.description ?? 'กำลังค้นหาที่อยู่…');
+  const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
+  const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
 
   /* ───── Initialise Geocoder ───── */
   useEffect(() => {
@@ -28,13 +41,19 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel })
 
   /* ───── Reverse‑geocode helper (strip Plus Code) ───── */
   const PLUS_CODE_RE = /^[A-Z0-9]{4,7}\+[A-Z0-9]{2,3}\s*/i;
-  const cleanPlusCode = (full) => full.replace(PLUS_CODE_RE, '').trim();
-  const refreshAddress = (loc) => {
+  const cleanPlusCode = (full: string): string => full.replace(PLUS_CODE_RE, '').trim();
+  const refreshAddress = (loc: google.maps.LatLngLiteral): void => {
     if (!geocoder) return;
-    geocoder.geocode({ location: loc, language: TH_LANG }, (results, status) => {
-      if (status === 'OK' && results?.[0]) setAddress(cleanPlusCode(results[0].formatted_address));
-      else setAddress('ไม่พบชื่อสถานที่');
-    });
+    geocoder.geocode(
+      { location: loc, language: TH_LANG },
+      (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
+        if (status === 'OK' && results?.[0]) {
+          setAddress(cleanPlusCode(results[0].formatted_address));
+        } else {
+          setAddress('ไม่พบชื่อสถานที่');
+        }
+      }
+    );
   };
 
   /* ───── Browser geolocation (first load) ───── */
@@ -113,4 +132,4 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel })
       </div>
     </div>
   );
-}
+} 

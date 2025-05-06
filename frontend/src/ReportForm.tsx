@@ -1,38 +1,60 @@
-// src/ReportForm.jsx
 import React, { useState } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { User } from 'firebase/auth';
 import { app } from './firebase';
 import LocationPicker from './LocationPicker';
 
-export default function ReportForm({ user }) {
+interface Location {
+  lat: number;
+  lng: number;
+  description: string;
+}
+
+interface ReportFormProps {
+  user: User;
+}
+
+interface CreateReportData {
+  numberOfCats: string;
+  type: string;
+  contactPhone: string;
+  images: string[];
+  location: {
+    lat: number;
+    long: number;
+    description: string;
+  };
+}
+
+export default function ReportForm({ user }: ReportFormProps) {
   /* ───── form state ───── */
-  const [numCats, setNumCats]   = useState('1');
-  const [type, setType]         = useState('stray');
-  const [phone, setPhone]       = useState('');
-  const [images, setImages]     = useState([]);
-  const [location, setLocation] = useState(null);
+  const [numCats, setNumCats] = useState<string>('1');
+  const [type, setType] = useState<string>('stray');
+  const [phone, setPhone] = useState<string>('');
+  const [images, setImages] = useState<string[]>([]);
+  const [location, setLocation] = useState<Location | null>(null);
 
   /* ───── modal toggle ───── */
-  const [showPicker, setShowPicker] = useState(false);
+  const [showPicker, setShowPicker] = useState<boolean>(false);
 
   const functions = getFunctions(app);
 
   /* ───── submit handler ───── */
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     if (!location) {
       alert('กรุณาเลือกตำแหน่งแมวก่อน');
       return;
     }
 
     try {
-      const createReport = httpsCallable(functions, 'createReport');
+      const createReport = httpsCallable<CreateReportData, void>(functions, 'createReport');
       await createReport({
         numberOfCats: numCats,
         type,
         contactPhone: phone,
         images,
         location: {
-          lat:  location.lat,
+          lat: location.lat,
           long: location.lng,
           description: location.description,
         },
@@ -52,14 +74,16 @@ export default function ReportForm({ user }) {
   };
 
   /* ───── image -> data-URL preview ───── */
-  const handleImageUpload = (e) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    if (!e.target.files) return;
+    
     const files = Array.from(e.target.files).slice(0, 3);
     Promise.all(
       files.map(
         (f) =>
-          new Promise((res) => {
+          new Promise<string>((res) => {
             const reader = new FileReader();
-            reader.onload = () => res(reader.result);
+            reader.onload = () => res(reader.result as string);
             reader.readAsDataURL(f);
           })
       )
@@ -72,7 +96,7 @@ export default function ReportForm({ user }) {
       {showPicker && (
         <LocationPicker
           initialLocation={location}
-          onConfirm={(loc) => {
+          onConfirm={(loc: Location) => {
             setLocation(loc);
             setShowPicker(false);
           }}
@@ -93,7 +117,7 @@ export default function ReportForm({ user }) {
             className="w-full border rounded p-2"
           >
             {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
-              <option key={n}>{n}</option>
+              <option key={n} value={n}>{n}</option>
             ))}
             <option value="not sure">ไม่แน่ใจ</option>
           </select>
@@ -128,7 +152,12 @@ export default function ReportForm({ user }) {
         {/* รูปภาพ */}
         <div>
           <label className="block mb-1 font-medium">รูปภาพ (สูงสุด 3 รูป)</label>
-          <input type="file" accept="image/*" multiple onChange={handleImageUpload} />
+          <input 
+            type="file" 
+            accept="image/*" 
+            multiple 
+            onChange={handleImageUpload} 
+          />
           {images.length > 0 && (
             <div className="flex gap-2 mt-2">
               {images.map((src, idx) => (
@@ -174,4 +203,4 @@ export default function ReportForm({ user }) {
       </div>
     </div>
   );
-}
+} 

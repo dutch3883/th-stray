@@ -3,3 +3,4 @@ frontend/dist
 frontend/node_modules/*
 functions/node_modules/*
 .firebase/*
+service_account_key.json

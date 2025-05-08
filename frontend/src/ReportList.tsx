@@ -53,7 +53,7 @@ export default function ReportList({ user }: ReportListProps) {
 
   if (isLoading) {
     return (
-      <div className="p-4">
+      <div className="p-4 pb-bottom-bar">
         <h2 className="text-lg font-bold mb-4">รายการแจ้งของฉัน</h2>
         <div className="text-gray-500">กำลังโหลด...</div>
       </div>
@@ -62,7 +62,7 @@ export default function ReportList({ user }: ReportListProps) {
 
   if (!reports.length) {
     return (
-      <div className="p-4">
+      <div className="p-4 pb-bottom-bar">
         <h2 className="text-lg font-bold mb-4">รายการแจ้งของฉัน</h2>
         <div className="text-gray-500">ยังไม่มีรายการแจ้ง</div>
       </div>
@@ -70,7 +70,7 @@ export default function ReportList({ user }: ReportListProps) {
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 pb-bottom-bar space-y-4">
       <h2 className="text-lg font-bold">รายการแจ้งของฉัน</h2>
       {reports.map((report) => (
         <div key={report.id} className="border p-4 rounded-lg shadow-sm">

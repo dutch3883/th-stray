@@ -5,7 +5,15 @@ export default {
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      spacing: {
+        'safe-bottom': 'env(safe-area-inset-bottom, 16px)',
+        'bottom-bar': '64px', // Adjust this value to match your bottom bar height
+      },
+      padding: {
+        'screen-bottom': 'calc(env(safe-area-inset-bottom, 16px) + 64px)', // Combines safe area + bottom bar
+      },
+    },
   },
   plugins: [],
 }

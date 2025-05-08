@@ -244,7 +244,7 @@ export default function App() {
       <CatPawWatermark opacity={0.04} color="#3B82F6" density="medium" />
       
       {/* Main content */}
-      <main className="flex-1 relative z-10 flex-col flex">
+      <main className="flex-1 relative z-10 flex-col flex pb-bottom-bar">
         {renderContent()}
       </main>
 

@@ -15,9 +15,15 @@ export interface Location {
     contactPhone: string;
     images: string[];            // base64 URLs or uploaded URLs
     location: Location;
-    status: 'pending' | 'complete' | 'cancelled';
-    createdAt: string;           // ISO string or Firestore Timestamp .toDate().toISOString()
-    updatedAt?: string;
+    status: 'pending' | 'complete' | 'cancelled' | string;
+    createdAt: FirebaseTimestamp;
+    updatedAt?: FirebaseTimestamp;
     adminNote?: string;
     photoUrl?: string;
+  }
+
+  // Firebase Timestamp type
+  export interface FirebaseTimestamp {
+    _seconds: number;
+    _nanoseconds: number;
   }

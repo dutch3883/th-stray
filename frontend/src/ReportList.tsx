@@ -1,11 +1,35 @@
 import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
 import { listMyReports } from './services/apiService';
-import type { Report } from './models';
+import type { FirebaseTimestamp, Report } from './models';
 
 interface ReportListProps {
   user: User;
 }
+
+// Helper function to format Firebase timestamps with time
+const formatFirebaseTimestamp = (timestamp: FirebaseTimestamp): string => {
+  try {
+    // Handle Firebase Timestamp format with _seconds and _nanoseconds
+    if (timestamp && typeof timestamp === 'object' && '_seconds' in timestamp) {
+      const date = new Date(timestamp._seconds * 1000 + (timestamp._nanoseconds / 1000000));
+      // Format: date and time in Thai locale
+      return date.toLocaleString('th-TH', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    
+    // Fallback for other formats
+    return new Date(timestamp).toLocaleString('th-TH');
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Invalid date';
+  }
+};
 
 export default function ReportList({ user }: ReportListProps) {
   const [reports, setReports] = useState<Report[]>([]);
@@ -58,7 +82,7 @@ export default function ReportList({ user }: ReportListProps) {
               {report.type === 'kitten' && 'ลูกแมว'}
             </div>
             <div className="text-sm">
-              {new Date(report.createdAt).toLocaleDateString('th-TH')}
+              {report.createdAt && formatFirebaseTimestamp(report.createdAt)}
             </div>
           </div>
           

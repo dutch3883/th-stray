@@ -20,7 +20,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // ── DTOs & Validation ─────────────────────────────────────────────────────
-enum CatType {
+export enum CatType {
   stray = "stray",
   injured = "injured",
   sick = "sick",
@@ -37,6 +37,7 @@ class CreateReportDto {
   @IsNumber() numberOfCats!: number;
   @IsEnum(CatType) type!: CatType;
   @IsString() contactPhone!: string;
+  @IsString() description!: string;
   @IsArray() @ArrayMaxSize(3) @IsString({ each: true }) images!: string[];
   @ValidateNested()
   @Type(() => LocationDto)

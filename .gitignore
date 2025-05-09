@@ -5,3 +5,7 @@ functions/node_modules/*
 functions/lib/*
 .firebase/*
 service_account_key.json
+functions/logs/*
+functions/test-results/*
+functions/firestore-debug.log
+.vscode

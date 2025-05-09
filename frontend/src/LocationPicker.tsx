@@ -84,7 +84,7 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
 
   /* ───── UI ───── */
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
+    <div className="pb-bottom-bar fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
       <div className="bg-white w-full sm:w-[92%] sm:max-w-xl h-[70vh] rounded-t-2xl sm:rounded-lg shadow-lg flex flex-col">
         {/* Drag handle for mobile sheet */}
         <div className="sm:hidden w-12 h-1.5 bg-gray-300 rounded-full mx-auto mt-2 mb-1"></div>

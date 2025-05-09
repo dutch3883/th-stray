@@ -48,17 +48,6 @@ export default function App() {
     if (!user) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 -mt-16 relative">
-          {/* Decorative cat paw prints */}
-          <div className="absolute top-1/4 left-4 transform -rotate-12 opacity-10">
-            <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor" className="text-blue-400">
-              <path d="M12,8.5C12,8.5 13.2,7.6 14.4,7.3C16.6,6.7 18.5,7.6 18.5,9C18.5,10.5 17,11.5 14.9,11.5C13.3,11.5 12,10.63 12,8.5M9,2C10.8,2 12,3.9 12,4.5C12,5.1 11.33,6 9.5,6C7.67,6 6,4.1 6,3.5C6,2.9 7.2,2 9,2M3,18C3,15.8 5.3,14 8,14C10.7,14 13,15.7 13,18C13,19 12.7,19.9 12,20L12,20L9,20C5.2,20 3,19 3,18M2.5,8C2.5,6.3 4.1,5 6,5C8.2,5 9.5,6.5 9.5,8.2C9.5,9.9 7.9,11.2 6,11.2C4.1,11.2 2.5,9.7 2.5,8M14,20C16.8,19.95 19,19 19,18C19,16.71 17.2,15.5 15,15V15C12.8,15 11,16.21 11,17.5C11,17.8 11.1,18.1 11.2,18.4C11.4,19.1 11.9,19.65 14,20Z" />
-            </svg>
-          </div>
-          <div className="absolute bottom-1/3 right-6 transform rotate-45 opacity-10">
-            <svg width="70" height="70" viewBox="0 0 24 24" fill="currentColor" className="text-blue-400">
-              <path d="M12,8.5C12,8.5 13.2,7.6 14.4,7.3C16.6,6.7 18.5,7.6 18.5,9C18.5,10.5 17,11.5 14.9,11.5C13.3,11.5 12,10.63 12,8.5M9,2C10.8,2 12,3.9 12,4.5C12,5.1 11.33,6 9.5,6C7.67,6 6,4.1 6,3.5C6,2.9 7.2,2 9,2M3,18C3,15.8 5.3,14 8,14C10.7,14 13,15.7 13,18C13,19 12.7,19.9 12,20L12,20L9,20C5.2,20 3,19 3,18M2.5,8C2.5,6.3 4.1,5 6,5C8.2,5 9.5,6.5 9.5,8.2C9.5,9.9 7.9,11.2 6,11.2C4.1,11.2 2.5,9.7 2.5,8M14,20C16.8,19.95 19,19 19,18C19,16.71 17.2,15.5 15,15V15C12.8,15 11,16.21 11,17.5C11,17.8 11.1,18.1 11.2,18.4C11.4,19.1 11.9,19.65 14,20Z" />
-            </svg>
-          </div>
           
           {/* Soft background gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 opacity-60 z-[-1]"></div>
@@ -241,7 +230,7 @@ export default function App() {
   return (
     <div className="flex flex-col min-h-screen bg-white relative">
       {/* Watermark as background */}
-      <CatPawWatermark opacity={0.04} color="#3B82F6" density="medium" />
+      <CatPawWatermark opacity={0.05} color="#3B82F6" density="medium" />
       
       {/* Main content */}
       <main className="flex-1 relative z-10 flex-col flex pb-bottom-bar">

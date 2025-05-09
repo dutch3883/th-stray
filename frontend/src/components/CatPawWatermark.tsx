@@ -17,9 +17,9 @@ const CatPawWatermark: React.FC<CatPawWatermarkProps> = ({
   const getPatternConfig = () => {
     switch (density) {
       case 'light':
-        return { width: 200, height: 200, patternUnits: "userSpaceOnUse" };
+        return { width: 300, height: 300, patternUnits: "userSpaceOnUse" };
       case 'dense':
-        return { width: 100, height: 100, patternUnits: "userSpaceOnUse" };
+        return { width: 150, height: 150, patternUnits: "userSpaceOnUse" };
       case 'medium':
       default:
         return { width: 150, height: 150, patternUnits: "userSpaceOnUse" };

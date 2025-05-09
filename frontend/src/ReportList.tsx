@@ -73,8 +73,8 @@ export default function ReportList({ user }: ReportListProps) {
     <div className="p-4 pb-bottom-bar space-y-4">
       <h2 className="text-lg font-bold">รายการแจ้งของฉัน</h2>
       {reports.map((report) => (
-        <div key={report.id} className="border p-4 rounded-lg shadow-sm">
-          <div className="flex justify-between items-start mb-2">
+        <div key={report.id} className="border p-4 rounded-lg shadow-sm bg-white">
+          <div className="flex justify-between items-start mb-2 ">
             <div className="font-medium">
               {report.type === 'stray' && 'แมวจร'}
               {report.type === 'injured' && 'แมวบาดเจ็บ'}

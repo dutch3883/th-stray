@@ -38,22 +38,32 @@ jobs:
         env:
           CI: true
 
-      - name: Upload Artifacts
+      - name: Upload Test Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts
+          name: test-artifacts
           path: |
             functions/logs
             functions/test-results
 
       - name: Test Report
+        id: test-reports
         uses: dorny/test-reporter@v2
         if: always()    # run this step even if previous step failed
         with:
           name: JEST Tests
           path: functions/test-results/*.xml    
           reporter: jest-junit
+
+      - name: Test Badge
+        uses: schneegans/dynamic-badges-action@v1.6.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: a467edbe2a1e888a4e18ff8c1097b5ec
+          label: tests
+          message: ${{ steps.test-reports.outputs.summary }}
+          color: ${{ steps.test-reports.outputs.color }}
 
   deploy:
     needs: test

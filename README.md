@@ -1,6 +1,6 @@
 # Stray Cat Reporter
 
-[![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/dutch3883/a467edbe2a1e888a4e18ff8c1097b5ec/raw/210528a5b55324f9c0b773bfcf27c7993b95095b/gistfile1.txt)](https://github.com/dutch3883/th-stray/actions)
+[![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/dutch3883/a467edbe2a1e888a4e18ff8c1097b5ec/raw/210528a5b55324f9c0b773bfcf27c7993b95095b)](https://github.com/dutch3883/th-stray/actions)
 
 A full‐stack application to let users report injured, sick, or stray cats on a map—so rescue organizations can respond quickly. Built with a React + Vite + Tailwind front-end and Firebase serverless back-end.
 

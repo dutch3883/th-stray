@@ -37,7 +37,7 @@ class CreateReportDto {
   @IsNumber() numberOfCats!: number;
   @IsEnum(CatType) type!: CatType;
   @IsString() contactPhone!: string;
-  @IsString() description!: string;
+  description?: string;
   @IsArray() @ArrayMaxSize(3) @IsString({ each: true }) images!: string[];
   @ValidateNested()
   @Type(() => LocationDto)

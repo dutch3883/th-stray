@@ -94,6 +94,12 @@ export default function ReportList({ user }: ReportListProps) {
               report.status === 'cancelled' ? 'ยกเลิก' : report.status
             }</div>
             <div>สถานที่: {report.location.description}</div>
+            {report.description && (
+              <div className="mt-2 p-2 bg-gray-50 rounded">
+                <div className="font-medium">รายละเอียดเพิ่มเติม:</div>
+                <div>{report.description}</div>
+              </div>
+            )}
             {report.adminNote && (
               <div className="mt-2 p-2 bg-gray-50 rounded">
                 <div className="font-medium">บันทึกเพิ่มเติม:</div>

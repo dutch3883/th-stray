@@ -26,6 +26,7 @@ export function createReport(payload: {
   numberOfCats: number;
   type: 'stray' | 'injured' | 'sick' | 'kitten';
   contactPhone: string;
+  description?: string;
   images: string[];
   location: Location;
 }): Promise<{ id: string }> {
@@ -44,7 +45,7 @@ export function adminListReports(): Promise<Report[]> {
   return call<Report[]>('adminListReports', {});
 }
 
-/** Change a report’s status → { ok: true } */
+/** Change a report's status → { ok: true } */
 export function adminChangeStatus(
   params: { id: string; status: 'complete' | 'cancelled'; note?: string; photoUrl?: string }
 ): Promise<{ ok: boolean }> {

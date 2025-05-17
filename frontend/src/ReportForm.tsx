@@ -19,6 +19,7 @@ export default function ReportForm({ user }: ReportFormProps) {
   const [numCats, setNumCats] = useState<string>('1');
   const [type, setType] = useState<'stray' | 'injured' | 'sick' | 'kitten'>('stray');
   const [phone, setPhone] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [location, setLocation] = useState<Location | null>(null);
@@ -55,6 +56,7 @@ export default function ReportForm({ user }: ReportFormProps) {
         numberOfCats: numCats === 'not sure' ? 0 : parseInt(numCats, 10),
         type,
         contactPhone: phone,
+        description: description || undefined,
         images: uploadedImageUrls,
         location: {
           lat: location.lat,
@@ -68,6 +70,7 @@ export default function ReportForm({ user }: ReportFormProps) {
       setNumCats('1');
       setType('stray');
       setPhone('');
+      setDescription('');
       setImages([]);
       setImagePreviewUrls([]);
       setLocation(null);
@@ -166,6 +169,19 @@ export default function ReportForm({ user }: ReportFormProps) {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             disabled={isSubmitting}
+          />
+        </div>
+
+        {/* รายละเอียดเพิ่มเติม */}
+        <div>
+          <label className="block mb-1 font-medium">รายละเอียดเพิ่มเติม (ถ้ามี)</label>
+          <textarea
+            placeholder="เช่น ลักษณะเด่นของแมว, สภาพแวดล้อม, ฯลฯ"
+            className="w-full border rounded p-2"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={isSubmitting}
+            rows={3}
           />
         </div>
 

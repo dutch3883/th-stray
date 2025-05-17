@@ -13,6 +13,7 @@ export interface Location {
     numberOfCats: number;
     type: 'stray' | 'injured' | 'sick' | 'kitten';
     contactPhone: string;
+    description?: string;
     images: string[];            // base64 URLs or uploaded URLs
     location: Location;
     status: 'pending' | 'complete' | 'cancelled' | string;

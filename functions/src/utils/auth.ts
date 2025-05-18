@@ -18,6 +18,10 @@ export const OPERATION_CONFIG: Record<string, OperationConfig> = {
     allowedRoles: ["admin", "rescuer", "reporter"],
     requiresAuth: true,
   },
+  listReports: {
+    allowedRoles: ["admin", "rescuer"],
+    requiresAuth: true,
+  },
   updateReport: {
     allowedRoles: ["admin", "rescuer", "reporter"],
     requiresAuth: true,

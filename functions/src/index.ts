@@ -9,6 +9,7 @@ import {
   IsArray,
   ArrayMaxSize,
   ValidateNested,
+  IsOptional,
 } from "class-validator";
 import * as functions from "firebase-functions/v2";
 import * as admin from "firebase-admin";
@@ -59,6 +60,21 @@ class UpdateReportRequestDto {
 class StatusChangeRequestDto {
   @IsString() reportId!: string;
   @IsString() remark!: string;
+}
+
+class ListReportsRequestDto {
+  @IsOptional()
+  @IsEnum(ReportStatus)
+  status?: ReportStatus;
+  @IsOptional()
+  @IsEnum(CatType)
+  type?: CatType;
+  
+  @IsString()
+  sortBy: string = 'createdAt';
+  
+  @IsString()
+  sortOrder: 'asc' | 'desc' = 'desc';
 }
 
 // ── Handlers ────────────────────────────────────────────────────────────────
@@ -332,5 +348,53 @@ export const completeReport = functions.https.onCall(async (req) => {
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError("internal", `Could not complete report. Error: ${e}`);
+  }
+});
+
+export const listReports = functions.https.onCall(async (req) => {
+  logger.info("listReports", { uid: req.auth?.uid, data: req.data });
+  await checkAuthorization(req, "listReports");
+
+  const dto = plainToInstance(ListReportsRequestDto, req.data);
+  const errs = await validate(dto);
+  if (errs.length) {
+    logger.warn("validation failed", { errs });
+    throw new HttpsError(
+      "invalid-argument",
+      `Invalid data ${JSON.stringify(errs)}`,
+    );
+  }
+
+  try {
+    let query: admin.firestore.Query = db.collection("reports");
+
+    // Apply filters if provided
+    if (dto.status) {
+      query = query.where("status", "==", dto.status);
+    }
+    if (dto.type) {
+      query = query.where("type", "==", dto.type);
+    }
+
+    // Apply sorting
+    query = query.orderBy(dto.sortBy, dto.sortOrder);
+
+    const snapshot = await query.get();
+    const reports = snapshot.docs.map(doc => {
+      const data = doc.data() as unknown as Omit<ReportData, "id"> & {
+        createdAt: { toDate(): Date };
+        updatedAt: { toDate(): Date };
+      };
+      return {
+        id: doc.id,
+        ...instanceToPlain(Report.fromFirestore(doc.id, data).data)
+      };
+    });
+
+    logger.info("fetched reports", { count: reports.length });
+    return reports;
+  } catch (e) {
+    logger.error("firestore error", e);
+    throw new HttpsError("internal", `Could not fetch reports. Error: ${e}`);
   }
 });

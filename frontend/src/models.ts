@@ -16,7 +16,7 @@ export interface Location {
     description?: string;
     images: string[];            // base64 URLs or uploaded URLs
     location: Location;
-    status: 'pending' | 'complete' | 'cancelled' | string;
+    status: 'pending' | 'onHold' | 'completed' | 'cancelled';
     createdAt: FirebaseTimestamp;
     updatedAt?: FirebaseTimestamp;
     adminNote?: string;

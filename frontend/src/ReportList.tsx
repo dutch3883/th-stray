@@ -90,7 +90,8 @@ export default function ReportList({ user }: ReportListProps) {
             <div>จำนวน: {report.numberOfCats} ตัว</div>
             <div>สถานะ: {
               report.status === 'pending' ? 'รอดำเนินการ' :
-              report.status === 'complete' ? 'ดำเนินการแล้ว' :
+              report.status === 'onHold' ? 'พักการดำเนินการ' :
+              report.status === 'completed' ? 'ดำเนินการแล้ว' :
               report.status === 'cancelled' ? 'ยกเลิก' : report.status
             }</div>
             <div>สถานที่: {report.location.description}</div>

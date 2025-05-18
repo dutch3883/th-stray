@@ -112,7 +112,7 @@ describe('Create Report Function', () => {
     const errorData = await response.json() as ErrorResponse;
     expect(errorData).toHaveProperty('error');
     expect(errorData.error).toHaveProperty('message');
-    expect(errorData.error.message).toBe('Auth required');
+    expect(errorData.error.message).toBe('User must be authenticated');
     expect(errorData.error).toHaveProperty('status', 'UNAUTHENTICATED');
   });
 }); 

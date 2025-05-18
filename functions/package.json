@@ -7,7 +7,8 @@
         "node": "22"
     },
     "scripts": {
-        "build": "tsc -w -p tsconfig.json",
+        "buildWatch": "tsc -w -p tsconfig.json",
+        "build": "tsc -p tsconfig.json",
         "lint": "eslint src --ext .ts,.js",
         "fix": "eslint src --fix --ext .ts,.js",
         "serve": "npm run build && firebase emulators:start --only functions,auth,firestore",

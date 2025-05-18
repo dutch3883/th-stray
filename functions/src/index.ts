@@ -69,12 +69,12 @@ class ListReportsRequestDto {
   @IsOptional()
   @IsEnum(CatType)
   type?: CatType;
-  
+
   @IsString()
-  sortBy: string = 'createdAt';
-  
+  sortBy: string = "createdAt";
+
   @IsString()
-  sortOrder: 'asc' | 'desc' = 'desc';
+  sortOrder: "asc" | "desc" = "desc";
 }
 
 // ── Handlers ────────────────────────────────────────────────────────────────
@@ -380,14 +380,14 @@ export const listReports = functions.https.onCall(async (req) => {
     query = query.orderBy(dto.sortBy, dto.sortOrder);
 
     const snapshot = await query.get();
-    const reports = snapshot.docs.map(doc => {
+    const reports = snapshot.docs.map((doc) => {
       const data = doc.data() as unknown as Omit<ReportData, "id"> & {
         createdAt: { toDate(): Date };
         updatedAt: { toDate(): Date };
       };
       return {
         id: doc.id,
-        ...instanceToPlain(Report.fromFirestore(doc.id, data).data)
+        ...instanceToPlain(Report.fromFirestore(doc.id, data).data),
       };
     });
 

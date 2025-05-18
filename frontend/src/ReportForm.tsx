@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { createReport } from './services/apiService';
+import {api} from './services/apiService';
 import { uploadImageAndGetUrl } from './services/storageService';
 import LocationPicker from './LocationPicker';
+import { CatType } from './types/report';
 
 interface Location {
   lat: number;
@@ -17,7 +18,7 @@ interface ReportFormProps {
 export default function ReportForm({ user }: ReportFormProps) {
   /* ───── form state ───── */
   const [numCats, setNumCats] = useState<string>('1');
-  const [type, setType] = useState<'stray' | 'injured' | 'sick' | 'kitten'>('stray');
+  const [type, setType] = useState<CatType>(CatType.STRAY);
   const [phone, setPhone] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [images, setImages] = useState<File[]>([]);
@@ -52,7 +53,7 @@ export default function ReportForm({ user }: ReportFormProps) {
       const uploadedImageUrls = await Promise.all(uploadPromises);
 
       // Create report with uploaded image URLs and converted number
-      await createReport({
+      await api.createReport({
         numberOfCats: numCats === 'not sure' ? 0 : parseInt(numCats, 10),
         type,
         contactPhone: phone,
@@ -60,15 +61,15 @@ export default function ReportForm({ user }: ReportFormProps) {
         images: uploadedImageUrls,
         location: {
           lat: location.lat,
-          long: location.lng,
-          description: location.description,
+          lng: location.lng,
+          address: location.description,
         },
       });
 
       alert('ส่งรายงานสำเร็จ!');
       /* reset form */
       setNumCats('1');
-      setType('stray');
+      setType(CatType.STRAY);
       setPhone('');
       setDescription('');
       setImages([]);
@@ -140,20 +141,14 @@ export default function ReportForm({ user }: ReportFormProps) {
           <label className="block mb-1 font-medium">ประเภท</label>
           <select
             value={type}
-            onChange={(e) => {
-              const value = e.target.value;
-              // Type assertion to tell TypeScript this value is one of the allowed types
-              if (value === 'stray' || value === 'injured' || value === 'sick' || value === 'kitten') {
-                setType(value);
-              }
-            }}
+            onChange={(e) => setType(e.target.value as CatType)}
             className="w-full border rounded p-2"
             disabled={isSubmitting}
           >
-            <option value="stray">แมวจร</option>
-            <option value="injured">บาดเจ็บ</option>
-            <option value="sick">ป่วย</option>
-            <option value="kitten">ลูกแมว</option>
+            <option value={CatType.STRAY}>แมวจร</option>
+            <option value={CatType.INJURED}>บาดเจ็บ</option>
+            <option value={CatType.SICK}>ป่วย</option>
+            <option value={CatType.KITTEN}>ลูกแมว</option>
           </select>
         </div>
 

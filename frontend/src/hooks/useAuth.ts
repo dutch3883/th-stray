@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 import { 
   GoogleAuthProvider, 
-  User, 
+  User as FirebaseUser, 
   signInWithPopup, 
   signOut,
   onAuthStateChanged 
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import { UserRole } from '../types/auth';
+
+// Extend Firebase User with our custom properties
+interface User extends FirebaseUser {
+  role: UserRole;
+}
 
 // Define the user data we want to cache
 type CachedUser = {
@@ -14,6 +20,7 @@ type CachedUser = {
   displayName: string | null;
   email: string | null;
   photoURL: string | null;
+  role: UserRole;
 };
 
 export function useAuth() {
@@ -35,13 +42,16 @@ export function useAuth() {
           // Set up auth state listener to validate with Firebase
           const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             if (firebaseUser) {
-              setUser(firebaseUser);
+              // Add role to the user object
+              const userWithRole = {
+                ...firebaseUser,
+                role: cachedUser.role || UserRole.USER
+              } as User;
+              setUser(userWithRole);
               // Update cache with latest data
-              cacheUserData(firebaseUser);
+              cacheUserData(userWithRole);
             } else if (cachedUser) {
               // Try silent reauthentication or clear cache if that fails
-              // This is a simplified version; you might want to implement
-              // refreshing tokens or other auth persistence strategies
               localStorage.removeItem('cachedUser');
             }
             setLoading(false);
@@ -51,9 +61,14 @@ export function useAuth() {
         } else {
           // No cached user, just listen for auth state changes
           const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-            setUser(firebaseUser);
             if (firebaseUser) {
-              cacheUserData(firebaseUser);
+              // Add default role for new users
+              const userWithRole = {
+                ...firebaseUser,
+                role: UserRole.USER
+              } as User;
+              setUser(userWithRole);
+              cacheUserData(userWithRole);
             }
             setLoading(false);
           });
@@ -120,7 +135,8 @@ export function useAuth() {
         uid: user.uid,
         displayName: user.displayName,
         email: user.email,
-        photoURL: user.photoURL
+        photoURL: user.photoURL,
+        role: user.role
       };
       localStorage.setItem('cachedUser', JSON.stringify(userToCache));
     }
@@ -131,8 +147,13 @@ export function useAuth() {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-      setUser(result.user);
-      cacheUserData(result.user);
+      // Add default role for new users
+      const userWithRole = {
+        ...result.user,
+        role: UserRole.USER
+      } as User;
+      setUser(userWithRole);
+      cacheUserData(userWithRole);
     } catch (error) {
       console.error('Sign in error:', error);
     }

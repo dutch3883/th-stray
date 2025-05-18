@@ -9,8 +9,9 @@ import ReportForm from './ReportForm';
 import ReportList from './ReportList';
 import './index.css';
 import CatPawWatermark from './components/CatPawWatermark';
+import { MapView } from './components/MapView';
 
-type ViewType = 'home' | 'report' | 'list';
+type ViewType = 'home' | 'report' | 'list' | 'map' | 'all-reports';
 
 function AppContent() {
   const { user, loading: authLoading, signIn, logOut, cachedProfileUrl, imageError, setImageError } = useAuth();
@@ -18,6 +19,8 @@ function AppContent() {
   const { colors, isRescueMode } = useTheme();
   const [view, setView] = useState<ViewType>('home');
   const [recentCount, setRecentCount] = useState<number>(0);
+  const [pendingCount, setPendingCount] = useState<number>(0);
+  const [completedCount, setCompletedCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [userRole, setUserRole] = useState<string | undefined>();
 
@@ -32,27 +35,30 @@ function AppContent() {
     fetchUserRole();
   }, [user]);
 
-  // Fetch count of recent reports for the home page
+  // Fetch counts for the home page
   useEffect(() => {
     if (user && view === 'home') {
       setLoading(true);
-      const fetchRecentCount = async () => {
+      const fetchCounts = async () => {
         try {
           const q = query(
             collection(firestore, 'reports'),
-            orderBy('createdAt', 'desc'),
-            limit(50)
+            orderBy('createdAt', 'desc')
           );
           const snapshot = await getDocs(q);
-          setRecentCount(snapshot.size);
+          const reports = snapshot.docs.map(doc => doc.data());
+          
+          setRecentCount(reports.length);
+          setPendingCount(reports.filter(r => r.status === 'pending').length);
+          setCompletedCount(reports.filter(r => r.status === 'completed').length);
         } catch (error) {
-          console.error('Error fetching recent reports:', error);
+          console.error('Error fetching reports:', error);
         } finally {
           setLoading(false);
         }
       };
       
-      fetchRecentCount();
+      fetchCounts();
     }
   }, [user, view]);
 
@@ -185,71 +191,137 @@ function AppContent() {
             <div className={`bg-gradient-to-r ${isRescueMode ? 'from-emerald-500 to-green-600' : 'from-blue-500 to-blue-600'} text-white p-6 rounded-xl shadow-md`}>
               <h1 className="text-2xl font-bold mb-2">ยินดีต้อนรับ / Welcome</h1>
               <p className={`${isRescueMode ? 'text-emerald-100' : 'text-blue-100'}`}>
-                ขอบคุณที่ช่วยเหลือแมวจรในชุมชนของเรา ♥
-              </p>
-              <p className={`${isRescueMode ? 'text-emerald-100' : 'text-blue-100'}`}>
-                Thank you for helping stray cats in our community
+                {mode === 'rescue' ? 'ขอบคุณที่ช่วยเหลือแมวจรในชุมชนของเรา ♥' : 'ขอบคุณที่แจ้งข้อมูลแมวจรในชุมชนของเรา ♥'}
               </p>
             </div>
 
             {/* Stats */}
             <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
               <h2 className="text-lg font-medium text-gray-700 mb-3">สถิติล่าสุด / Recent Activity</h2>
-              <div className="flex items-center mb-2">
-                <div className={`w-12 h-12 ${isRescueMode ? 'bg-emerald-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mr-4`}>
-                  <svg className={`w-6 h-6 ${isRescueMode ? 'text-emerald-600' : 'text-blue-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
+              {mode === 'rescue' ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center">
+                    <div className={`w-12 h-12 ${isRescueMode ? 'bg-emerald-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mr-4`}>
+                      <svg className={`w-6 h-6 ${isRescueMode ? 'text-emerald-600' : 'text-blue-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">ช่วยเหลือสำเร็จ / Completed</p>
+                      <p className="text-xl font-semibold">{completedCount}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <div className={`w-12 h-12 ${isRescueMode ? 'bg-emerald-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mr-4`}>
+                      <svg className={`w-6 h-6 ${isRescueMode ? 'text-emerald-600' : 'text-blue-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">รอช่วยเหลือ / Pending</p>
+                      <p className="text-xl font-semibold">{pendingCount}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">จำนวนรายงานล่าสุด / Recent Reports</p>
-                  <p className="text-xl font-semibold">
-                    {loading ? 
-                      <span className="text-gray-400">กำลังโหลด / Loading...</span> : 
-                      recentCount
-                    }
-                  </p>
+              ) : (
+                <div className="flex items-center">
+                  <div className={`w-12 h-12 ${isRescueMode ? 'bg-emerald-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mr-4`}>
+                    <svg className={`w-6 h-6 ${isRescueMode ? 'text-emerald-600' : 'text-blue-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">จำนวนรายงานล่าสุด / Recent Reports</p>
+                    <p className="text-xl font-semibold">
+                      {loading ? 
+                        <span className="text-gray-400">กำลังโหลด / Loading...</span> : 
+                        recentCount
+                      }
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Feature cards */}
             <div className="grid grid-cols-1 gap-4 mb-4">
-              <div 
-                className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center cursor-pointer hover:bg-gray-50"
-                onClick={() => setView('report')}
-              >
-                <div className={`w-12 h-12 ${isRescueMode ? 'bg-emerald-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mr-4`}>
-                  <svg className={`w-6 h-6 ${isRescueMode ? 'text-emerald-600' : 'text-blue-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium text-gray-800">แจ้งข้อมูลแมวจร</h3>
-                  <p className="text-sm text-gray-600">Report stray cat information</p>
-                </div>
-                <svg className="w-5 h-5 ml-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
+              {mode === 'rescue' ? (
+                <>
+                  <div 
+                    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center cursor-pointer hover:bg-gray-50"
+                    onClick={() => setView('map')}
+                  >
+                    <div className={`w-12 h-12 ${isRescueMode ? 'bg-emerald-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mr-4`}>
+                      <svg className={`w-6 h-6 ${isRescueMode ? 'text-emerald-600' : 'text-blue-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-800">แผนที่รายงาน</h3>
+                      <p className="text-sm text-gray-600">View reports on map</p>
+                    </div>
+                    <svg className="w-5 h-5 ml-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
 
-              <div 
-                className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center cursor-pointer hover:bg-gray-50"
-                onClick={() => setView('list')}
-              >
-                <div className={`w-12 h-12 ${isRescueMode ? 'bg-emerald-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mr-4`}>
-                  <svg className={`w-6 h-6 ${isRescueMode ? 'text-emerald-600' : 'text-blue-600'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium text-gray-800">รายการของฉัน</h3>
-                  <p className="text-sm text-gray-600">View your reported cats</p>
-                </div>
-                <svg className="w-5 h-5 ml-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
+                  <div 
+                    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center cursor-pointer hover:bg-gray-50"
+                    onClick={() => setView('all-reports')}
+                  >
+                    <div className={`w-12 h-12 ${isRescueMode ? 'bg-emerald-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mr-4`}>
+                      <svg className={`w-6 h-6 ${isRescueMode ? 'text-emerald-600' : 'text-blue-600'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-800">รายการทั้งหมด</h3>
+                      <p className="text-sm text-gray-600">View all reports</p>
+                    </div>
+                    <svg className="w-5 h-5 ml-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div 
+                    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center cursor-pointer hover:bg-gray-50"
+                    onClick={() => setView('report')}
+                  >
+                    <div className={`w-12 h-12 ${isRescueMode ? 'bg-emerald-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mr-4`}>
+                      <svg className={`w-6 h-6 ${isRescueMode ? 'text-emerald-600' : 'text-blue-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-800">แจ้งข้อมูลแมวจร</h3>
+                      <p className="text-sm text-gray-600">Report stray cat information</p>
+                    </div>
+                    <svg className="w-5 h-5 ml-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+
+                  <div 
+                    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center cursor-pointer hover:bg-gray-50"
+                    onClick={() => setView('list')}
+                  >
+                    <div className={`w-12 h-12 ${isRescueMode ? 'bg-emerald-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mr-4`}>
+                      <svg className={`w-6 h-6 ${isRescueMode ? 'text-emerald-600' : 'text-blue-600'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-800">รายการของฉัน</h3>
+                      <p className="text-sm text-gray-600">View your reported cats</p>
+                    </div>
+                    <svg className="w-5 h-5 ml-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Tips section */}
@@ -273,6 +345,10 @@ function AppContent() {
         return <ReportForm user={user} />;
       case 'list':
         return <ReportList user={user} />;
+      case 'map':
+        return <MapView />;
+      case 'all-reports':
+        return <div>All Reports List Component (To be implemented)</div>;
       default:
         return null;
     }
@@ -303,25 +379,51 @@ function AppContent() {
             <span className="text-xs mt-1">หน้าหลัก</span>
           </button>
 
-          <button 
-            className={`flex flex-col items-center ${view === 'report' ? (isRescueMode ? 'text-emerald-600' : 'text-blue-600') : 'text-gray-400'} flex-1`}
-            onClick={() => user ? setView('report') : signIn()}
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="text-xs mt-1">แจ้งข้อมูล</span>
-          </button>
+          {mode === 'rescue' ? (
+            <>
+              <button 
+                className={`flex flex-col items-center ${view === 'map' ? (isRescueMode ? 'text-emerald-600' : 'text-blue-600') : 'text-gray-400'} flex-1`}
+                onClick={() => setView('map')}
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                <span className="text-xs mt-1">แผนที่</span>
+              </button>
 
-          <button 
-            className={`flex flex-col items-center ${view === 'list' ? (isRescueMode ? 'text-emerald-600' : 'text-blue-600') : 'text-gray-400'} flex-1`}
-            onClick={() => user ? setView('list') : signIn()}
-          >
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <span className="text-xs mt-1">รายการของฉัน</span>
-          </button>
+              <button 
+                className={`flex flex-col items-center ${view === 'all-reports' ? (isRescueMode ? 'text-emerald-600' : 'text-blue-600') : 'text-gray-400'} flex-1`}
+                onClick={() => setView('all-reports')}
+              >
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <span className="text-xs mt-1">รายการทั้งหมด</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                className={`flex flex-col items-center ${view === 'report' ? (isRescueMode ? 'text-emerald-600' : 'text-blue-600') : 'text-gray-400'} flex-1`}
+                onClick={() => setView('report')}
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="text-xs mt-1">แจ้งข้อมูล</span>
+              </button>
+
+              <button 
+                className={`flex flex-col items-center ${view === 'list' ? (isRescueMode ? 'text-emerald-600' : 'text-blue-600') : 'text-gray-400'} flex-1`}
+                onClick={() => setView('list')}
+              >
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <span className="text-xs mt-1">รายการของฉัน</span>
+              </button>
+            </>
+          )}
         </div>
       </nav>
     </div>

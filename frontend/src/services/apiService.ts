@@ -2,7 +2,8 @@
 import { getAuth } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '../firebase';
-import type { Report } from '../models';
+import { functions } from '../firebase';
+import { ReportDTO, ReportStatus, CatType, Location } from '../types/report';
 
 const auth = getAuth(app);
 
@@ -12,48 +13,77 @@ const fns = host
   ? getFunctions(app, host.startsWith('http') ? host : `https://${host}`)
   : getFunctions(app);
 
-/** Helper to invoke a callable and get the raw data */
-async function call<T = any, P = any>(fnName: string, payload: P): Promise<T> {
-  const fn = httpsCallable<P, T>(fns, fnName);
-  const res = await fn(payload);
-  return res.data;
-}
-
-// ── USER calls ──────────────────────────────────────────────────────────────
-
-/** Create a new report, returns { id } */
-export function createReport(payload: {
+// Type definitions
+export interface CreateReportParams {
   numberOfCats: number;
-  type: 'stray' | 'injured' | 'sick' | 'kitten';
+  type: CatType;
   contactPhone: string;
   description?: string;
   images: string[];
   location: Location;
-}): Promise<{ id: string }> {
-  return call('createReport', payload);
 }
 
-/** Get your own reports (typed as Report[]) */
-export function listMyReports(): Promise<Report[]> {
-  return call<Report[]>('listMyReports', {});
+export interface UpdateReportParams {
+  reportId: string;
+  data: CreateReportParams;
 }
 
-// ── ADMIN calls ─────────────────────────────────────────────────────────────
-
-/** List all reports (typed as Report[]) */
-export function adminListReports(): Promise<Report[]> {
-  return call<Report[]>('adminListReports', {});
+export interface StatusChangeParams {
+  reportId: string;
+  remark: string;
 }
 
-/** Change a report's status → { ok: true } */
-export function adminChangeStatus(
-  params: { id: string; status: 'completed' | 'cancelled' | 'onHold'; note?: string; photoUrl?: string }
-): Promise<{ ok: boolean }> {
-  return call('changeStatus', params);
+export interface ListReportsParams {
+  status?: ReportStatus;
+  type?: CatType;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
 }
 
-export interface Location {
-  lat: number;
-  long: number;
-  description: string;
-}
+// Firebase function references
+const createReportFn = httpsCallable<CreateReportParams, { id: string }>(functions, 'createReport');
+const listMyReportsFn = httpsCallable<{}, ReportDTO[]>(functions, 'listMyReports');
+const listReportsFn = httpsCallable<ListReportsParams, ReportDTO[]>(functions, 'listReports');
+const updateReportFn = httpsCallable<UpdateReportParams, void>(functions, 'updateReport');
+const cancelReportFn = httpsCallable<StatusChangeParams, void>(functions, 'cancelReport');
+const putReportOnHoldFn = httpsCallable<StatusChangeParams, void>(functions, 'putReportOnHold');
+const resumeReportFn = httpsCallable<StatusChangeParams, void>(functions, 'resumeReport');
+const completeReportFn = httpsCallable<StatusChangeParams, void>(functions, 'completeReport');
+
+// Helper functions for type-safe API calls
+export const api = {
+  createReport: async (params: CreateReportParams): Promise<string> => {
+    const result = await createReportFn(params);
+    return result.data.id;
+  },
+
+  listMyReports: async (): Promise<ReportDTO[]> => {
+    const result = await listMyReportsFn();
+    return result.data;
+  },
+
+  listReports: async (params: ListReportsParams): Promise<ReportDTO[]> => {
+    const result = await listReportsFn(params);
+    return result.data;
+  },
+
+  updateReport: async (params: UpdateReportParams): Promise<void> => {
+    await updateReportFn(params);
+  },
+
+  cancelReport: async (params: StatusChangeParams): Promise<void> => {
+    await cancelReportFn(params);
+  },
+
+  putReportOnHold: async (params: StatusChangeParams): Promise<void> => {
+    await putReportOnHoldFn(params);
+  },
+
+  resumeReport: async (params: StatusChangeParams): Promise<void> => {
+    await resumeReportFn(params);
+  },
+
+  completeReport: async (params: StatusChangeParams): Promise<void> => {
+    await completeReportFn(params);
+  },
+};

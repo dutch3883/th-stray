@@ -1,34 +1,27 @@
 import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
-import { listMyReports } from './services/apiService';
-import type { FirebaseTimestamp, Report } from './models';
+import { api } from './services/apiService';
+import { Report, ReportDTO, ReportStatus } from './types/report';
 
 interface ReportListProps {
   user: User;
 }
 
-// Helper function to format Firebase timestamps with time
-const formatFirebaseTimestamp = (timestamp: FirebaseTimestamp): string => {
-  try {
-    // Handle Firebase Timestamp format with _seconds and _nanoseconds
-    if (timestamp && typeof timestamp === 'object' && '_seconds' in timestamp) {
-      const date = new Date(timestamp._seconds * 1000 + (timestamp._nanoseconds / 1000000));
-      // Format: date and time in Thai locale
-      return date.toLocaleString('th-TH', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-    
-    // Fallback for other formats
-    return new Date(timestamp).toLocaleString('th-TH');
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'Invalid date';
+// Helper function to format dates
+const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: number }): string => {
+  let date: Date;
+  if ('_seconds' in dateOrTimestamp) {
+    date = new Date(dateOrTimestamp._seconds * 1000);
+  } else {
+    date = dateOrTimestamp;
   }
+  return date.toLocaleString('th-TH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 export default function ReportList({ user }: ReportListProps) {
@@ -39,7 +32,7 @@ export default function ReportList({ user }: ReportListProps) {
     const fetchReports = async (): Promise<void> => {
       try {
         setIsLoading(true);
-        const data = await listMyReports();
+        const data = await api.listMyReports();
         setReports(data);
       } catch (err) {
         console.error('Error fetching reports:', err);
@@ -82,34 +75,28 @@ export default function ReportList({ user }: ReportListProps) {
               {report.type === 'kitten' && 'ลูกแมว'}
             </div>
             <div className="text-sm">
-              {report.createdAt && formatFirebaseTimestamp(report.createdAt)}
+              {report.createdAt && formatDate(report.createdAt)}
             </div>
           </div>
           
           <div className="text-sm text-gray-600 space-y-1">
             <div>จำนวน: {report.numberOfCats} ตัว</div>
             <div>สถานะ: {
-              report.status === 'pending' ? 'รอดำเนินการ' :
-              report.status === 'onHold' ? 'พักการดำเนินการ' :
-              report.status === 'completed' ? 'ดำเนินการแล้ว' :
-              report.status === 'cancelled' ? 'ยกเลิก' : report.status
+              report.status === ReportStatus.PENDING ? 'รอดำเนินการ' :
+              report.status === ReportStatus.ON_HOLD ? 'พักการดำเนินการ' :
+              report.status === ReportStatus.COMPLETED ? 'ดำเนินการแล้ว' :
+              report.status === ReportStatus.CANCELLED ? 'ยกเลิก' : report.status
             }</div>
-            <div>สถานที่: {report.location.description}</div>
+            <div>สถานที่: {report.location.address}</div>
             {report.description && (
               <div className="mt-2 p-2 bg-gray-50 rounded">
                 <div className="font-medium">รายละเอียดเพิ่มเติม:</div>
                 <div>{report.description}</div>
               </div>
             )}
-            {report.adminNote && (
-              <div className="mt-2 p-2 bg-gray-50 rounded">
-                <div className="font-medium">บันทึกเพิ่มเติม:</div>
-                <div>{report.adminNote}</div>
-              </div>
-            )}
           </div>
 
-          {report.status === 'pending' && (
+          {report.status === ReportStatus.PENDING && (
             <div className="mt-3 flex gap-2">
               <button className="px-3 py-1.5 text-sm bg-yellow-100 text-yellow-700 rounded-md hover:bg-yellow-200">
                 แก้ไข

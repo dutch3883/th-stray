@@ -208,7 +208,7 @@ export const cancelReport = functions.https.onCall(async (req) => {
     await reportRef.update(cancelledReport.toFirestore());
 
     logger.info("cancelled report", { id: dto.reportId });
-    return { id: dto.reportId };
+    return instanceToPlain(cancelledReport.data);
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError("internal", `Could not cancel report. Error: ${e}`);
@@ -247,7 +247,7 @@ export const putReportOnHold = functions.https.onCall(async (req) => {
     await reportRef.update(updatedReport.toFirestore());
 
     logger.info("put report on hold", { id: dto.reportId });
-    return { id: dto.reportId };
+    return instanceToPlain(updatedReport.data);
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError(
@@ -289,7 +289,7 @@ export const resumeReport = functions.https.onCall(async (req) => {
     await reportRef.update(updatedReport.toFirestore());
 
     logger.info("resumed report", { id: dto.reportId });
-    return { id: dto.reportId };
+    return instanceToPlain(updatedReport.data);
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError("internal", `Could not resume report. Error: ${e}`);
@@ -328,7 +328,7 @@ export const completeReport = functions.https.onCall(async (req) => {
     await reportRef.update(updatedReport.toFirestore());
 
     logger.info("completed report", { id: dto.reportId });
-    return { id: dto.reportId };
+    return instanceToPlain(updatedReport.data);
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError("internal", `Could not complete report. Error: ${e}`);

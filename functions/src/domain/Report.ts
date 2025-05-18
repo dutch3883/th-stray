@@ -157,8 +157,8 @@ export class Report {
 
   toFirestore(): Omit<ReportData, "id"> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...rest } = this.data;
-    return rest;
+    const { id, description, ...rest } = this.data;
+    return description === undefined ? rest : { ...rest, description };
   }
 
   static fromFirestore(

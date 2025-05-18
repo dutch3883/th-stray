@@ -2,6 +2,7 @@
 frontend/dist
 frontend/node_modules/*
 functions/node_modules/*
+functions/coverage/*
 functions/lib/*
 .firebase/*
 service_account_key.json

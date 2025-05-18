@@ -47,7 +47,7 @@ export function adminListReports(): Promise<Report[]> {
 
 /** Change a report's status → { ok: true } */
 export function adminChangeStatus(
-  params: { id: string; status: 'complete' | 'cancelled'; note?: string; photoUrl?: string }
+  params: { id: string; status: 'completed' | 'cancelled' | 'onHold'; note?: string; photoUrl?: string }
 ): Promise<{ ok: boolean }> {
   return call('changeStatus', params);
 }

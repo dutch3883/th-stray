@@ -1,7 +1,7 @@
 import { createTestUser, getAuthToken, deleteAllUsers } from './auth';
 import { describe, it, beforeAll, afterAll, expect } from '@jest/globals';
 import { AuthResponse } from './auth';
-import { CatType } from '../src/index';
+import { CatType } from '../src/domain/Report';
 
 // Add type definition for create report response
 interface CreateReportResponse {
@@ -67,9 +67,12 @@ describe('Create Report Function', () => {
       }
     );
 
+    const body = await response.json() 
+
+    console.log(`body: ${JSON.stringify(body)}`)
     expect(response.status).toBe(200);
     
-    const data = await response.json() as CreateReportResponse;
+    const data = body as CreateReportResponse;
     expect(data).toHaveProperty('result');
     expect(data.result).toHaveProperty('id');
     expect(typeof data.result.id).toBe('string');

@@ -1,7 +1,7 @@
 import { createTestUser, getAuthToken, deleteAllUsers } from './auth';
 import { describe, it, beforeAll, afterAll, expect } from '@jest/globals';
 import { AuthResponse } from './auth';
-import { CatType } from '../src/index';
+import { CatType} from '../src/domain/Report';
 
 // Define interface for the response data structure
 interface ReportListResponse {

@@ -1,7 +1,6 @@
 export enum ReportStatus {
   PENDING = 'pending',
-  IN_PROGRESS = 'in_progress',
-  ON_HOLD = 'on_hold',
+  ON_HOLD = 'onHold',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled'
 }
@@ -17,7 +16,7 @@ export enum CatType {
 export interface Location {
   lat: number;
   long: number;
-  address: string;
+  description: string;
 }
 
 // DTO for API responses

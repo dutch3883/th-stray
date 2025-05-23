@@ -10,6 +10,7 @@ import ReportList from './ReportList';
 import './index.css';
 import CatPawWatermark from './components/CatPawWatermark';
 import { MapView } from './components/MapView';
+import { AllReports } from './components/AllReports';
 
 type ViewType = 'home' | 'report' | 'list' | 'map' | 'all-reports';
 
@@ -348,7 +349,7 @@ function AppContent() {
       case 'map':
         return <MapView />;
       case 'all-reports':
-        return <div>All Reports List Component (To be implemented)</div>;
+        return <AllReports/>;
       default:
         return null;
     }

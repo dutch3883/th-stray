@@ -10,3 +10,5 @@ functions/logs/*
 functions/test-results/*
 functions/firestore-debug.log
 .vscode
+functions/firebase-debug.log
+

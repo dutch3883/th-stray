@@ -2,8 +2,58 @@ import { useState, useEffect } from 'react';
 import { api } from '../services/apiService';
 import { Report, ReportStatus, CatType } from '../types/report';
 import { Spinner } from './Spinner';
+import { useNavigate } from 'react-router-dom';
+
+// Helper function to format dates
+const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: number }): string => {
+  let date: Date;
+  if ('_seconds' in dateOrTimestamp) {
+    date = new Date(dateOrTimestamp._seconds * 1000);
+  } else {
+    date = dateOrTimestamp;
+  }
+  return date.toLocaleString('th-TH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// Helper functions for Thai text
+const getStatusText = (status: ReportStatus): string => {
+  switch (status) {
+    case ReportStatus.PENDING:
+      return "กำลังดำเนินการ";
+    case ReportStatus.COMPLETED:
+      return "เสร็จสิ้น";
+    case ReportStatus.ON_HOLD:
+      return "รอดำเนินการ";
+    case ReportStatus.CANCELLED:
+      return "ยกเลิก";
+    default:
+      return status;
+  }
+};
+
+const getTypeText = (type: CatType): string => {
+  switch (type) {
+    case CatType.STRAY:
+      return "แมวจร";
+    case CatType.INJURED:
+      return "แมวบาดเจ็บ";
+    case CatType.SICK:
+      return "แมวป่วย";
+    case CatType.KITTEN:
+      return "ลูกแมว";
+    default:
+      return type;
+  }
+};
 
 export const AllReports = () => {
+  const navigate = useNavigate();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ReportStatus | ''>('');
@@ -12,15 +62,22 @@ export const AllReports = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
-  const [newStatus, setNewStatus] = useState<ReportStatus>(ReportStatus.IN_PROGRESS);
+  const [newStatus, setNewStatus] = useState<ReportStatus>(ReportStatus.PENDING);
   const [remark, setRemark] = useState('');
 
+  // Initial load
   useEffect(() => {
     fetchReports();
+  }, []);
+
+  // Filter changes
+  useEffect(() => {
+    fetchReportsWithoutLoading();
   }, [statusFilter, typeFilter, sortBy, sortOrder]);
 
   const fetchReports = async () => {
     try {
+      setLoading(true);
       const data = await api.listReports({
         status: statusFilter || undefined,
         type: typeFilter || undefined,
@@ -35,6 +92,20 @@ export const AllReports = () => {
     }
   };
 
+  const fetchReportsWithoutLoading = async () => {
+    try {
+      const data = await api.listReports({
+        status: statusFilter || undefined,
+        type: typeFilter || undefined,
+        sortBy,
+        sortOrder
+      });
+      setReports(data);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+    }
+  };
+
   const handleStatusChange = async () => {
     if (!selectedReport) return;
 
@@ -46,7 +117,7 @@ export const AllReports = () => {
         case ReportStatus.ON_HOLD:
           await api.putReportOnHold({ reportId: selectedReport.id, remark });
           break;
-        case ReportStatus.IN_PROGRESS:
+        case ReportStatus.PENDING:
           await api.resumeReport({ reportId: selectedReport.id, remark });
           break;
         case ReportStatus.CANCELLED:
@@ -62,6 +133,10 @@ export const AllReports = () => {
     }
   };
 
+  const handleViewOnMap = (report: Report) => {
+    navigate(`/map?reportId=${report.id}`);
+  };
+
   if (loading) {
     return <Spinner />;
   }
@@ -69,50 +144,62 @@ export const AllReports = () => {
   return (
     <div className="p-4">
       <div className="mb-6 flex flex-wrap gap-4">
-        <select
-          className="p-2 border rounded"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as ReportStatus | '')}
-        >
-          <option value="">All Statuses</option>
-          {Object.values(ReportStatus).map((status) => (
-            <option key={status} value={status}>
-              {status}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">กรองตามสถานะ</label>
+          <select
+            className="p-2 border rounded"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as ReportStatus | '')}
+          >
+            <option value="">ทุกสถานะ</option>
+            {Object.values(ReportStatus).map((status) => (
+              <option key={status} value={status}>
+                {getStatusText(status)}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <select
-          className="p-2 border rounded"
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as CatType | '')}
-        >
-          <option value="">All Types</option>
-          {Object.values(CatType).map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">กรองตามประเภท</label>
+          <select
+            className="p-2 border rounded"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as CatType | '')}
+          >
+            <option value="">ทุกประเภท</option>
+            {Object.values(CatType).map((type) => (
+              <option key={type} value={type}>
+                {getTypeText(type)}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <select
-          className="p-2 border rounded"
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-        >
-          <option value="createdAt">Created At</option>
-          <option value="status">Status</option>
-          <option value="type">Type</option>
-        </select>
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">เรียงตาม</label>
+          <select
+            className="p-2 border rounded"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="createdAt">วันที่สร้าง</option>
+            <option value="status">สถานะ</option>
+            <option value="type">ประเภท</option>
+          </select>
+        </div>
 
-        <select
-          className="p-2 border rounded"
-          value={sortOrder}
-          onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-        >
-          <option value="desc">Descending</option>
-          <option value="asc">Ascending</option>
-        </select>
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">ลำดับ</label>
+          <select
+            className="p-2 border rounded"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+          >
+            <option value="desc">มากไปน้อย</option>
+            <option value="asc">น้อยไปมาก</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid gap-4">
@@ -123,24 +210,32 @@ export const AllReports = () => {
           >
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="font-bold">Report #{report.id}</h3>
-                <p>Status: {report.status}</p>
-                <p>Type: {report.type}</p>
-                <p>Cats: {report.numberOfCats}</p>
-                {report.description && <p>Description: {report.description}</p>}
-                <p>Contact: {report.contactPhone}</p>
-                <p>Location: {report.location.address || `${report.location.lat}, ${report.location.lng}`}</p>
-                <p>Created: {new Date(report.createdAt).toLocaleString()}</p>
+                <h3 className="font-bold">รายงาน #{report.id}</h3>
+                <p>สถานะ: {getStatusText(report.status)}</p>
+                <p>ประเภท: {getTypeText(report.type)}</p>
+                <p>จำนวนแมว: {report.numberOfCats} ตัว</p>
+                {report.description && <p>รายละเอียด: {report.description}</p>}
+                <p>เบอร์ติดต่อ: {report.contactPhone}</p>
+                <p>สถานที่: {report.location.description}</p>
+                <p>วันที่สร้าง: {formatDate(report.createdAt)}</p>
               </div>
-              <button
-                className="bg-blue-500 text-white px-3 py-1 rounded"
-                onClick={() => {
-                  setSelectedReport(report);
-                  setStatusModalOpen(true);
-                }}
-              >
-                Update Status
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                  onClick={() => {
+                    setSelectedReport(report);
+                    setStatusModalOpen(true);
+                  }}
+                >
+                  อัปเดตสถานะ
+                </button>
+                <button
+                  className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                  onClick={() => handleViewOnMap(report)}
+                >
+                  ดูบนแผนที่
+                </button>
+              </div>
             </div>
             {report.images.length > 0 && (
               <div className="mt-4 flex gap-2 overflow-x-auto">
@@ -148,7 +243,7 @@ export const AllReports = () => {
                   <img
                     key={index}
                     src={image}
-                    alt={`Report ${report.id} - Image ${index + 1}`}
+                    alt={`รายงาน ${report.id} - รูปที่ ${index + 1}`}
                     className="h-32 w-32 object-cover rounded"
                   />
                 ))}
@@ -162,20 +257,20 @@ export const AllReports = () => {
       {statusModalOpen && selectedReport && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Update Report Status</h2>
+            <h2 className="text-xl font-bold mb-4">อัปเดตสถานะรายงาน</h2>
             <select
               className="w-full p-2 border rounded mb-4"
               value={newStatus}
               onChange={(e) => setNewStatus(e.target.value as ReportStatus)}
             >
-              <option value={ReportStatus.IN_PROGRESS}>In Progress</option>
-              <option value={ReportStatus.ON_HOLD}>On Hold</option>
-              <option value={ReportStatus.COMPLETED}>Completed</option>
-              <option value={ReportStatus.CANCELLED}>Cancelled</option>
+              <option value={ReportStatus.PENDING}>กำลังดำเนินการ</option>
+              <option value={ReportStatus.ON_HOLD}>รอดำเนินการ</option>
+              <option value={ReportStatus.COMPLETED}>เสร็จสิ้น</option>
+              <option value={ReportStatus.CANCELLED}>ยกเลิก</option>
             </select>
             <textarea
               className="w-full p-2 border rounded mb-4"
-              placeholder="Add a remark..."
+              placeholder="เพิ่มหมายเหตุ..."
               value={remark}
               onChange={(e) => setRemark(e.target.value)}
             />
@@ -184,13 +279,13 @@ export const AllReports = () => {
                 className="px-4 py-2 bg-gray-200 rounded"
                 onClick={() => setStatusModalOpen(false)}
               >
-                Cancel
+                ยกเลิก
               </button>
               <button
                 className="px-4 py-2 bg-blue-500 text-white rounded"
                 onClick={handleStatusChange}
               >
-                Update
+                อัปเดต
               </button>
             </div>
           </div>

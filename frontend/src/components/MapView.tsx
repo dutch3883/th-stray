@@ -3,6 +3,7 @@ import { GoogleMap, useJsApiLoader, InfoWindow } from '@react-google-maps/api';
 import { api } from '../services/apiService';
 import { Report, ReportStatus, CatType } from '../types/report';
 import { Spinner } from './Spinner';
+import { useSearchParams } from 'react-router-dom';
 
 const containerStyle = {
   width: '100%',
@@ -49,6 +50,8 @@ const getTypeText = (type: CatType): string => {
 };
 
 export const MapView = () => {
+  const [searchParams] = useSearchParams();
+  const reportId = searchParams.get('reportId');
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -197,24 +200,40 @@ export const MapView = () => {
 
     markersRef.current = newMarkers;
 
-    // Calculate bounds to fit all markers
-    if (newMarkers.length > 0) {
-      const bounds = new google.maps.LatLngBounds();
-      newMarkers.forEach(marker => {
-        bounds.extend(marker.getPosition()!);
-      });
+    // If there's a specific report to focus on
+    if (reportId) {
+      const targetReport = reports.find(r => r.id === reportId);
+      if (targetReport) {
+        const position = { lat: targetReport.location.lat, lng: targetReport.location.long };
+        mapRef.setCenter(position);
+        mapRef.setZoom(16);
+        
+        // Find and click the marker for this report
+        const targetMarker = newMarkers.find(m => m.getTitle() === `รายงาน #${reportId}`);
+        if (targetMarker) {
+          google.maps.event.trigger(targetMarker, 'click');
+        }
+      }
+    } else {
+      // Calculate bounds to fit all markers
+      if (newMarkers.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        newMarkers.forEach(marker => {
+          bounds.extend(marker.getPosition()!);
+        });
 
-      const ne = bounds.getNorthEast();
-      const sw = bounds.getSouthWest();
-      const latPadding = (ne.lat() - sw.lat()) * 0.1;
-      const lngPadding = (ne.lng() - sw.lng()) * 0.1;
+        const ne = bounds.getNorthEast();
+        const sw = bounds.getSouthWest();
+        const latPadding = (ne.lat() - sw.lat()) * 0.1;
+        const lngPadding = (ne.lng() - sw.lng()) * 0.1;
 
-      bounds.extend(new google.maps.LatLng(ne.lat() + latPadding, ne.lng() + lngPadding));
-      bounds.extend(new google.maps.LatLng(sw.lat() - latPadding, sw.lng() - lngPadding));
+        bounds.extend(new google.maps.LatLng(ne.lat() + latPadding, ne.lng() + lngPadding));
+        bounds.extend(new google.maps.LatLng(sw.lat() - latPadding, sw.lng() - lngPadding));
 
-      mapRef.fitBounds(bounds);
+        mapRef.fitBounds(bounds);
+      }
     }
-  }, [mapRef, filteredReports, isLoaded]);
+  }, [mapRef, filteredReports, isLoaded, reportId, reports]);
 
   // Add event listener for update status button
   useEffect(() => {

@@ -61,8 +61,8 @@ export default function ReportForm({ user }: ReportFormProps) {
         images: uploadedImageUrls,
         location: {
           lat: location.lat,
-          lng: location.lng,
-          address: location.description,
+          long: location.lng,
+          description: location.description,
         },
       });
 

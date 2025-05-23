@@ -23,7 +23,7 @@ const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 // Add helper functions for Thai text
 const getStatusText = (status: ReportStatus): string => {
   switch (status) {
-    case ReportStatus.IN_PROGRESS:
+    case ReportStatus.PENDING:
       return "กำลังดำเนินการ";
     case ReportStatus.COMPLETED:
       return "เสร็จสิ้น";
@@ -56,7 +56,7 @@ export const MapView = () => {
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
-  const [newStatus, setNewStatus] = useState<ReportStatus>(ReportStatus.IN_PROGRESS);
+  const [newStatus, setNewStatus] = useState<ReportStatus>(ReportStatus.PENDING);
   const [remark, setRemark] = useState('');
   const [typeFilter, setTypeFilter] = useState<CatType | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('all');
@@ -281,7 +281,7 @@ export const MapView = () => {
         case ReportStatus.ON_HOLD:
           await api.putReportOnHold({ reportId: selectedReport.id, remark });
           break;
-        case ReportStatus.IN_PROGRESS:
+        case ReportStatus.PENDING:
           await api.resumeReport({ reportId: selectedReport.id, remark });
           break;
         case ReportStatus.CANCELLED:
@@ -300,7 +300,7 @@ export const MapView = () => {
   // Helper function to get marker color based on status
   const getMarkerColor = (status: ReportStatus): string => {
     switch (status) {
-      case ReportStatus.IN_PROGRESS:
+      case ReportStatus.PENDING:
         return "#FFA500"; // Orange
       case ReportStatus.COMPLETED:
         return "#00FF00"; // Green
@@ -388,7 +388,7 @@ export const MapView = () => {
               value={newStatus}
               onChange={(e) => setNewStatus(e.target.value as ReportStatus)}
             >
-              <option value={ReportStatus.IN_PROGRESS}>กำลังดำเนินการ</option>
+              <option value={ReportStatus.PENDING}>กำลังดำเนินการ</option>
               <option value={ReportStatus.ON_HOLD}>รอดำเนินการ</option>
               <option value={ReportStatus.COMPLETED}>เสร็จสิ้น</option>
               <option value={ReportStatus.CANCELLED}>ยกเลิก</option>

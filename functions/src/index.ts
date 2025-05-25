@@ -120,7 +120,17 @@ export const listMyReports = functions.https.onCall(async (req) => {
       .where("uid", "==", uid)
       .orderBy("createdAt", "desc")
       .get();
-    const results = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const results = snap.docs.map((doc) => {
+      const data = doc.data() as unknown as FirestoreReportData;
+      return {
+        id: doc.id,
+        ...(() => {
+          const report = Report.fromFirestore(doc.id, data).data;
+          const plain = instanceToPlain(report);
+          return plain;
+        })(),
+      };
+    });
     logger.info("fetched reports", { count: results.length });
     return serializeResponse(results);
   } catch (e) {

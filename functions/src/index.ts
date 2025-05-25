@@ -21,7 +21,7 @@ import {
   ReportStatus,
   CatType,
   LocationDto,
-  ReportData,
+  FirestoreReportData,
 } from "./domain/Report";
 
 admin.initializeApp();
@@ -104,7 +104,7 @@ export const createReport = functions.https.onCall(async (req) => {
 
     const ref = await db.collection("reports").add(report.toFirestore());
     logger.info("created report", { id: ref.id });
-    return { id: ref.id };
+    return serializeResponse({ id: ref.id });
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError("internal", `Could not create report ${e} with data`);
@@ -122,7 +122,7 @@ export const listMyReports = functions.https.onCall(async (req) => {
       .get();
     const results = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     logger.info("fetched reports", { count: results.length });
-    return results;
+    return serializeResponse(results);
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError("internal", `Could not fetch reports. Error: ${e}`);
@@ -150,10 +150,7 @@ export const updateReport = functions.https.onCall(async (req) => {
     throw new HttpsError("not-found", "Report not found");
   }
 
-  const reportData = reportDoc.data() as unknown as Omit<ReportData, "id"> & {
-    createdAt: { toDate(): Date };
-    updatedAt: { toDate(): Date };
-  };
+  const reportData = reportDoc.data() as FirestoreReportData;
   const report = Report.fromFirestore(dto.reportId, reportData);
 
   if (report.data.uid !== uid) {
@@ -178,7 +175,7 @@ export const updateReport = functions.https.onCall(async (req) => {
     await reportRef.update(updatedReport.toFirestore());
 
     logger.info("updated report", { id: dto.reportId });
-    return { id: dto.reportId };
+    return serializeResponse({ id: dto.reportId });
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError("internal", `Could not update report. Error: ${e}`);
@@ -206,10 +203,7 @@ export const cancelReport = functions.https.onCall(async (req) => {
     throw new HttpsError("not-found", "Report not found");
   }
 
-  const reportData = reportDoc.data() as unknown as Omit<ReportData, "id"> & {
-    createdAt: { toDate(): Date };
-    updatedAt: { toDate(): Date };
-  };
+  const reportData = reportDoc.data() as FirestoreReportData;
   const report = Report.fromFirestore(dto.reportId, reportData);
 
   if (report.data.uid !== uid) {
@@ -224,7 +218,7 @@ export const cancelReport = functions.https.onCall(async (req) => {
     await reportRef.update(cancelledReport.toFirestore());
 
     logger.info("cancelled report", { id: dto.reportId });
-    return instanceToPlain(cancelledReport.data);
+    return serializeResponse(instanceToPlain(cancelledReport.data));
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError("internal", `Could not cancel report. Error: ${e}`);
@@ -252,10 +246,7 @@ export const putReportOnHold = functions.https.onCall(async (req) => {
     throw new HttpsError("not-found", "Report not found");
   }
 
-  const reportData = reportDoc.data() as unknown as Omit<ReportData, "id"> & {
-    createdAt: { toDate(): Date };
-    updatedAt: { toDate(): Date };
-  };
+  const reportData = reportDoc.data() as FirestoreReportData;
   const report = Report.fromFirestore(dto.reportId, reportData);
 
   try {
@@ -263,7 +254,7 @@ export const putReportOnHold = functions.https.onCall(async (req) => {
     await reportRef.update(updatedReport.toFirestore());
 
     logger.info("put report on hold", { id: dto.reportId });
-    return instanceToPlain(updatedReport.data);
+    return serializeResponse(instanceToPlain(updatedReport.data));
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError(
@@ -294,10 +285,7 @@ export const resumeReport = functions.https.onCall(async (req) => {
     throw new HttpsError("not-found", "Report not found");
   }
 
-  const reportData = reportDoc.data() as unknown as Omit<ReportData, "id"> & {
-    createdAt: { toDate(): Date };
-    updatedAt: { toDate(): Date };
-  };
+  const reportData = reportDoc.data() as FirestoreReportData;
   const report = Report.fromFirestore(dto.reportId, reportData);
 
   try {
@@ -305,7 +293,7 @@ export const resumeReport = functions.https.onCall(async (req) => {
     await reportRef.update(updatedReport.toFirestore());
 
     logger.info("resumed report", { id: dto.reportId });
-    return instanceToPlain(updatedReport.data);
+    return serializeResponse(instanceToPlain(updatedReport.data));
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError("internal", `Could not resume report. Error: ${e}`);
@@ -333,10 +321,7 @@ export const completeReport = functions.https.onCall(async (req) => {
     throw new HttpsError("not-found", "Report not found");
   }
 
-  const reportData = reportDoc.data() as unknown as Omit<ReportData, "id"> & {
-    createdAt: { toDate(): Date };
-    updatedAt: { toDate(): Date };
-  };
+  const reportData = reportDoc.data() as FirestoreReportData;
   const report = Report.fromFirestore(dto.reportId, reportData);
 
   try {
@@ -344,12 +329,16 @@ export const completeReport = functions.https.onCall(async (req) => {
     await reportRef.update(updatedReport.toFirestore());
 
     logger.info("completed report", { id: dto.reportId });
-    return instanceToPlain(updatedReport.data);
+    return serializeResponse(instanceToPlain(updatedReport.data));
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError("internal", `Could not complete report. Error: ${e}`);
   }
 });
+
+function serializeResponse<T>(data: T): T {
+  return JSON.parse(JSON.stringify(data));
+}
 
 export const listReports = functions.https.onCall(async (req) => {
   logger.info("listReports", { uid: req.auth?.uid, data: req.data });
@@ -381,18 +370,19 @@ export const listReports = functions.https.onCall(async (req) => {
 
     const snapshot = await query.get();
     const reports = snapshot.docs.map((doc) => {
-      const data = doc.data() as unknown as Omit<ReportData, "id"> & {
-        createdAt: { toDate(): Date };
-        updatedAt: { toDate(): Date };
-      };
+      const data = doc.data() as unknown as FirestoreReportData;
       return {
         id: doc.id,
-        ...instanceToPlain(Report.fromFirestore(doc.id, data).data),
+        ...(() => {
+          const report = Report.fromFirestore(doc.id, data).data;
+          const plain = instanceToPlain(report);
+          return plain;
+        })(),
       };
     });
 
-    logger.info("fetched reports", { count: reports.length });
-    return reports;
+    logger.info("fetched reports", { count: reports.length, obj: reports });
+    return serializeResponse(reports);
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError("internal", `Could not fetch reports. Error: ${e}`);

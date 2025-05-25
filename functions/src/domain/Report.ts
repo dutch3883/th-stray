@@ -1,4 +1,5 @@
 import { IsNumber, IsString } from "class-validator";
+import { Transform } from "class-transformer";
 
 export enum CatType {
   stray = "stray",
@@ -28,6 +29,16 @@ export interface StatusChange {
   remark: string;
 }
 
+export interface FirestoreTimestamp {
+  _seconds: number;
+  _nanoseconds: number;
+}
+
+export function toDate(timestamp: FirestoreTimestamp | undefined): Date {
+  if (!timestamp) return new Date();
+  return new Date(timestamp._seconds * 1000 + timestamp._nanoseconds / 1000000);
+}
+
 export interface ReportData {
   id: string;
   uid: string;
@@ -41,6 +52,11 @@ export interface ReportData {
   createdAt: Date;
   updatedAt: Date;
   statusHistory: StatusChange[];
+}
+
+export interface FirestoreReportData extends Omit<ReportData, 'id' | 'createdAt' | 'updatedAt'> {
+  createdAt: FirestoreTimestamp;
+  updatedAt: FirestoreTimestamp;
 }
 
 export class Report {
@@ -61,6 +77,16 @@ export class Report {
       updatedAt: data.updatedAt || new Date(),
       statusHistory: data.statusHistory || [],
     };
+  }
+
+  @Transform(({ value }) => value instanceof Date ? value.toISOString() : value)
+  get createdAt(): Date {
+    return this.data.createdAt;
+  }
+
+  @Transform(({ value }) => value instanceof Date ? value.toISOString() : value)
+  get updatedAt(): Date {
+    return this.data.updatedAt;
   }
 
   private static canChangeStatus(
@@ -86,10 +112,11 @@ export class Report {
     changedBy: string,
     remark: string,
   ): StatusChange {
+    const now = new Date();
     return {
       from: this.data.status,
       to: newStatus,
-      changedAt: new Date(),
+      changedAt: now,
       changedBy,
       remark,
     };
@@ -107,10 +134,11 @@ export class Report {
     }
 
     const statusChange = this.createStatusChange(newStatus, changedBy, remark);
+    const now = new Date();
     return new Report({
       ...this.data,
       status: newStatus,
-      updatedAt: new Date(),
+      updatedAt: now,
       statusHistory: [...this.data.statusHistory, statusChange],
     });
   }
@@ -148,10 +176,11 @@ export class Report {
       Omit<ReportData, "id" | "uid" | "status" | "createdAt" | "statusHistory">
     >,
   ): Report {
+    const now = new Date();
     return new Report({
       ...this.data,
       ...updates,
-      updatedAt: new Date(),
+      updatedAt: now,
     });
   }
 
@@ -163,12 +192,7 @@ export class Report {
 
   static fromFirestore(
     id: string,
-    data:
-      | (Omit<ReportData, "id"> & {
-          createdAt?: { toDate(): Date };
-          updatedAt?: { toDate(): Date };
-        })
-      | undefined,
+    data: FirestoreReportData | undefined,
   ): Report {
     if (!data) {
       throw new Error("Report data is undefined");
@@ -176,8 +200,8 @@ export class Report {
     return new Report({
       id,
       ...data,
-      createdAt: data.createdAt?.toDate() || new Date(),
-      updatedAt: data.updatedAt?.toDate() || new Date(),
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
     });
   }
 }

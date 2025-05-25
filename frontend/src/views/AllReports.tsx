@@ -1,14 +1,17 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../services/apiService';
 import { Report, ReportStatus, CatType } from '../types/report';
 import { Spinner } from '../components/Spinner';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '../theme';
+import { StatusUpdateModal } from '../components/StatusUpdateModal';
 
 // Helper function to format dates
-const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: number }): string => {
+const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: number } | string): string => {
   let date: Date;
-  if ('_seconds' in dateOrTimestamp) {
+  if (typeof dateOrTimestamp === 'string') {
+    date = new Date(dateOrTimestamp);
+  } else if ('_seconds' in dateOrTimestamp) {
     date = new Date(dateOrTimestamp._seconds * 1000);
   } else {
     date = dateOrTimestamp;
@@ -80,8 +83,8 @@ export const AllReports = () => {
   const navigate = useNavigate();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<ReportStatus | ''>('');
-  const [typeFilter, setTypeFilter] = useState<CatType | ''>('');
+  const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<CatType | 'all'>('all');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -103,8 +106,8 @@ export const AllReports = () => {
     try {
       setLoading(true);
       const data = await api.listReports({
-        status: statusFilter || undefined,
-        type: typeFilter || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        type: typeFilter === 'all' ? undefined : typeFilter,
         sortBy,
         sortOrder
       });
@@ -119,8 +122,8 @@ export const AllReports = () => {
   const fetchReportsWithoutLoading = async () => {
     try {
       const data = await api.listReports({
-        status: statusFilter || undefined,
-        type: typeFilter || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        type: typeFilter === 'all' ? undefined : typeFilter,
         sortBy,
         sortOrder
       });
@@ -161,12 +164,17 @@ export const AllReports = () => {
     navigate(`/map?reportId=${report.id}`);
   };
 
+  const handleUpdateStatus = (report: Report) => {
+    setSelectedReport(report);
+    setStatusModalOpen(true);
+  };
+
   if (loading) {
     return <Spinner />;
   }
 
   return (
-    <div className="p-4">
+    <div className="container mx-auto px-4 py-8">
       <div className="mb-6 flex flex-wrap gap-4">
         <div className="flex gap-4 justify-around flex-1">
           <div className="flex flex-col flex-1">
@@ -174,9 +182,9 @@ export const AllReports = () => {
             <select
               className="p-2 border rounded"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as ReportStatus | '')}
+              onChange={(e) => setStatusFilter(e.target.value as ReportStatus | 'all')}
             >
-              <option value="">ทุกสถานะ</option>
+              <option value="all">ทุกสถานะ</option>
               {Object.values(ReportStatus)
                 .filter(status => status !== ReportStatus.ON_HOLD)
                 .map((status) => (
@@ -192,9 +200,9 @@ export const AllReports = () => {
             <select
               className="p-2 border rounded"
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as CatType | '')}
+              onChange={(e) => setTypeFilter(e.target.value as CatType | 'all')}
             >
-              <option value="">ทุกประเภท</option>
+              <option value="all">ทุกประเภท</option>
               {Object.values(CatType).map((type) => (
                 <option key={type} value={type}>
                   {getTypeText(type)}
@@ -259,10 +267,7 @@ export const AllReports = () => {
               <div className="flex flex-col gap-2">
                 <button
                   className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                  onClick={() => {
-                    setSelectedReport(report);
-                    setStatusModalOpen(true);
-                  }}
+                  onClick={() => handleUpdateStatus(report)}
                 >
                   อัปเดตสถานะ
                 </button>
@@ -290,44 +295,15 @@ export const AllReports = () => {
         ))}
       </div>
 
-      {/* Status Update Modal */}
-      {statusModalOpen && selectedReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">อัปเดตสถานะรายงาน</h2>
-            <select
-              className="w-full p-2 border rounded mb-4"
-              value={newStatus}
-              onChange={(e) => setNewStatus(e.target.value as ReportStatus)}
-            >
-              <option value={ReportStatus.PENDING}>กำลังดำเนินการ</option>
-              <option value={ReportStatus.ON_HOLD}>รอดำเนินการ</option>
-              <option value={ReportStatus.COMPLETED}>เสร็จสิ้น</option>
-              <option value={ReportStatus.CANCELLED}>ยกเลิก</option>
-            </select>
-            <textarea
-              className="w-full p-2 border rounded mb-4"
-              placeholder="เพิ่มหมายเหตุ..."
-              value={remark}
-              onChange={(e) => setRemark(e.target.value)}
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                className="px-4 py-2 bg-gray-200 rounded"
-                onClick={() => setStatusModalOpen(false)}
-              >
-                ยกเลิก
-              </button>
-              <button
-                className="px-4 py-2 bg-blue-500 text-white rounded"
-                onClick={handleStatusChange}
-              >
-                อัปเดต
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <StatusUpdateModal
+        isOpen={statusModalOpen}
+        onClose={() => {
+          setStatusModalOpen(false);
+          setSelectedReport(null);
+        }}
+        report={selectedReport}
+        onStatusUpdated={fetchReports}
+      />
     </div>
   );
 }; 

@@ -4,6 +4,7 @@ import { api } from '../services/apiService';
 import { Report, ReportStatus, CatType } from '../types/report';
 import { Spinner } from '../components/Spinner';
 import { useSearchParams } from 'react-router-dom';
+import { StatusUpdateModal } from '../components/StatusUpdateModal';
 
 const containerStyle = {
   width: '100%',
@@ -44,6 +45,8 @@ const getTypeText = (type: CatType): string => {
       return "แมวบาดเจ็บ";
     case CatType.SICK:
       return "แมวป่วย";
+    case CatType.KITTEN:
+      return "ลูกแมว";
     default:
       return type;
   }
@@ -166,7 +169,7 @@ export const MapView = () => {
                 </div>
 
                 <button
-                  onclick="window.dispatchEvent(new CustomEvent('updateStatus', { detail: ${report.id} }))"
+                  onclick="console.log('Button clicked'); window.dispatchEvent(new CustomEvent('updateStatus', { detail: '${report.id}' }))"
                   style="
                     background-color: #3b82f6;
                     color: white;
@@ -238,11 +241,14 @@ export const MapView = () => {
   // Add event listener for update status button
   useEffect(() => {
     const handleUpdateStatus = (event: CustomEvent) => {
+      console.log('Update status event received:', event.detail);
       const reportId = event.detail;
       const report = reports.find(r => r.id === reportId);
+      console.log('Found report:', report);
       if (report) {
         setSelectedReport(report);
         setStatusModalOpen(true);
+        console.log('Modal state updated:', { selectedReport: report, statusModalOpen: true });
       }
     };
 
@@ -378,44 +384,15 @@ export const MapView = () => {
         />
       </div>
 
-      {/* Status Update Modal */}
-      {statusModalOpen && selectedReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">อัปเดตสถานะรายงาน</h2>
-            <select
-              className="w-full p-2 border rounded mb-4"
-              value={newStatus}
-              onChange={(e) => setNewStatus(e.target.value as ReportStatus)}
-            >
-              <option value={ReportStatus.PENDING}>กำลังดำเนินการ</option>
-              <option value={ReportStatus.ON_HOLD}>รอดำเนินการ</option>
-              <option value={ReportStatus.COMPLETED}>เสร็จสิ้น</option>
-              <option value={ReportStatus.CANCELLED}>ยกเลิก</option>
-            </select>
-            <textarea
-              className="w-full p-2 border rounded mb-4"
-              placeholder="เพิ่มหมายเหตุ..."
-              value={remark}
-              onChange={(e) => setRemark(e.target.value)}
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                className="px-4 py-2 bg-gray-200 rounded"
-                onClick={() => setStatusModalOpen(false)}
-              >
-                ยกเลิก
-              </button>
-              <button
-                className="px-4 py-2 bg-blue-500 text-white rounded"
-                onClick={handleStatusChange}
-              >
-                อัปเดต
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <StatusUpdateModal
+        isOpen={statusModalOpen}
+        onClose={() => {
+          setStatusModalOpen(false);
+          setSelectedReport(null);
+        }}
+        report={selectedReport}
+        onStatusUpdated={fetchReports}
+      />
     </div>
   );
 }; 

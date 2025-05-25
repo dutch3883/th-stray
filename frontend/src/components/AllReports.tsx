@@ -169,7 +169,7 @@ export const AllReports = () => {
     <div className="p-4">
       <div className="mb-6 flex flex-wrap gap-4">
         <div className="flex gap-4 justify-around flex-1">
-          <div className="flex flex-col">
+          <div className="flex flex-col flex-1">
             <label className="text-sm font-medium text-gray-700 mb-1">กรองตามสถานะ</label>
             <select
               className="p-2 border rounded"
@@ -187,7 +187,7 @@ export const AllReports = () => {
             </select>
           </div>
 
-          <div className="flex flex-col">
+          <div className="flex flex-col flex-1">
             <label className="text-sm font-medium text-gray-700 mb-1">กรองตามประเภท</label>
             <select
               className="p-2 border rounded"
@@ -205,7 +205,7 @@ export const AllReports = () => {
         </div>
 
         <div className="flex gap-4 justify-around flex-1">
-          <div className="flex flex-col">
+          <div className="flex flex-col flex-1">
             <label className="text-sm font-medium text-gray-700 mb-1">เรียงตาม</label>
             <select
               className="p-2 border rounded"
@@ -218,7 +218,7 @@ export const AllReports = () => {
             </select>
           </div>
 
-          <div className="flex flex-col">
+          <div className="flex flex-col flex-1">
             <label className="text-sm font-medium text-gray-700 mb-1">ลำดับ</label>
             <select
               className="p-2 border rounded"

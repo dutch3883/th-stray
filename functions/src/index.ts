@@ -388,3 +388,59 @@ export const listReports = functions.https.onCall(async (req) => {
     throw new HttpsError("internal", `Could not fetch reports. Error: ${e}`);
   }
 });
+
+export const countAllReports = functions.https.onCall(async (req) => {
+  logger.info("countAllReports", { uid: req.auth?.uid, data: req.data });
+  await checkAuthorization(req, "listReports");
+
+  const dto = plainToInstance(ListReportsRequestDto, req.data);
+  const errs = await validate(dto);
+  if (errs.length) {
+    logger.warn("validation failed", { errs });
+    throw new HttpsError(
+      "invalid-argument",
+      `Invalid data ${JSON.stringify(errs)}`,
+    );
+  }
+
+  try {
+    let query: admin.firestore.Query = db.collection("reports");
+
+    // Apply filters if provided
+    if (dto.status) {
+      query = query.where("status", "==", dto.status);
+    }
+    if (dto.type) {
+      query = query.where("type", "==", dto.type);
+    }
+
+    const snapshot = await query.count().get();
+    const count = snapshot.data().count;
+
+    logger.info("counted reports", { count });
+    return serializeResponse({ count });
+  } catch (e) {
+    logger.error("firestore error", e);
+    throw new HttpsError("internal", `Could not count reports. Error: ${e}`);
+  }
+});
+
+export const countMyReports = functions.https.onCall(async (req) => {
+  logger.info("countMyReports", { uid: req.auth?.uid });
+  const uid = await checkAuthorization(req, "listMyReports");
+
+  try {
+    const snapshot = await db
+      .collection("reports")
+      .where("uid", "==", uid)
+      .count()
+      .get();
+
+    const count = snapshot.data().count;
+    logger.info("counted my reports", { count });
+    return serializeResponse({ count });
+  } catch (e) {
+    logger.error("firestore error", e);
+    throw new HttpsError("internal", `Could not count reports. Error: ${e}`);
+  }
+});

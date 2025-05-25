@@ -54,7 +54,8 @@ export interface ReportData {
   statusHistory: StatusChange[];
 }
 
-export interface FirestoreReportData extends Omit<ReportData, 'id' | 'createdAt' | 'updatedAt'> {
+export interface FirestoreReportData
+  extends Omit<ReportData, "id" | "createdAt" | "updatedAt"> {
   createdAt: FirestoreTimestamp;
   updatedAt: FirestoreTimestamp;
 }
@@ -79,12 +80,16 @@ export class Report {
     };
   }
 
-  @Transform(({ value }) => value instanceof Date ? value.toISOString() : value)
+  @Transform(({ value }) =>
+    value instanceof Date ? value.toISOString() : value,
+  )
   get createdAt(): Date {
     return this.data.createdAt;
   }
 
-  @Transform(({ value }) => value instanceof Date ? value.toISOString() : value)
+  @Transform(({ value }) =>
+    value instanceof Date ? value.toISOString() : value,
+  )
   get updatedAt(): Date {
     return this.data.updatedAt;
   }

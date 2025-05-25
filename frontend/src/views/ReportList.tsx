@@ -1,9 +1,15 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { api } from '../services/apiService';
 import { Report, ReportDTO, ReportStatus } from '../types/report';
 import { Spinner } from '../components/Spinner';
 import { theme } from '../theme';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../contexts/ThemeContext';
+import { getThemeColor, getThemeBg, getButtonGradient } from '../utils/themeUtils';
+import { StatusUpdateModal } from '../components/StatusUpdateModal';
+import { EditReportModal } from '../components/EditReportModal';
 
 interface ReportListProps {
   user: User;
@@ -83,6 +89,7 @@ export default function ReportList({ user }: ReportListProps) {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelRemark, setCancelRemark] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     fetchReports();
@@ -136,7 +143,7 @@ export default function ReportList({ user }: ReportListProps) {
       {reports.map((report) => (
         <div key={report.id} className="border p-4 rounded-lg shadow-sm bg-white">
           <div className="flex justify-between items-start">
-            <div className="flex-1">
+            <div className="flex-1 overflow-scroll">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold">รายงาน #{report.id}</h3>
@@ -176,7 +183,10 @@ export default function ReportList({ user }: ReportListProps) {
             <div className="mt-3 flex gap-2">
               <button 
                 className="px-3 py-1.5 text-sm bg-yellow-100 text-yellow-700 rounded-md hover:bg-yellow-200"
-                onClick={() => {/* TODO: Implement edit functionality */}}
+                onClick={() => {
+                  setSelectedReport(report);
+                  setShowEditModal(true);
+                }}
               >
                 แก้ไข
               </button>
@@ -196,28 +206,28 @@ export default function ReportList({ user }: ReportListProps) {
 
       {/* Cancel Modal */}
       {cancelModalOpen && selectedReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">ยกเลิกรายงาน</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-4">ยกเลิกรายงาน</h3>
             <textarea
               className="w-full p-2 border rounded mb-4"
-              placeholder="ระบุเหตุผลในการยกเลิก..."
+              rows={3}
+              placeholder="ระบุเหตุผลการยกเลิก"
               value={cancelRemark}
               onChange={(e) => setCancelRemark(e.target.value)}
             />
             <div className="flex justify-end gap-2">
               <button
-                className="px-4 py-2 bg-gray-200 rounded"
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
                 onClick={() => {
                   setCancelModalOpen(false);
-                  setSelectedReport(null);
                   setCancelRemark('');
                 }}
               >
                 ยกเลิก
               </button>
               <button
-                className="px-4 py-2 bg-red-500 text-white rounded"
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                 onClick={handleCancel}
               >
                 ยืนยันการยกเลิก
@@ -225,6 +235,22 @@ export default function ReportList({ user }: ReportListProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {showEditModal && selectedReport && (
+        <EditReportModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedReport(null);
+          }}
+          report={selectedReport}
+          onReportUpdated={() => {
+            setShowEditModal(false);
+            setSelectedReport(null);
+            fetchReports();
+          }}
+        />
       )}
     </div>
   );

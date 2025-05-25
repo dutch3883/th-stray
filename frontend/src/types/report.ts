@@ -32,10 +32,11 @@ export interface ReportDTO {
   createdAt: Date;
   updatedAt: Date;
   statusHistory: Array<{
-    status: ReportStatus;
+    from: ReportStatus;
+    to: ReportStatus;
+    changedAt: Date;
+    changedBy: string;
     remark: string;
-    updatedBy: string;
-    updatedAt: Date;
   }>;
 }
 

@@ -26,14 +26,22 @@ const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: nu
 };
 
 // Helper functions for Thai text
-const getStatusText = (status: ReportStatus): string => {
+const getStatusText = (status: ReportStatus, report?: Report): string => {
+  if (status === ReportStatus.CANCELLED && report) {
+    const cancelledStatus = report.statusHistory.find(
+      change => change.to === ReportStatus.CANCELLED
+    );
+    const reason = cancelledStatus?.remark || 'ไม่พบเหตุผลการยกเลิก';
+    return `ยกเลิก: ${reason}`;
+  }
+
   switch (status) {
     case ReportStatus.PENDING:
-      return "กำลังดำเนินการ";
+      return 'กำลังดำเนินการ';
     case ReportStatus.COMPLETED:
-      return "เสร็จสิ้น";
+      return 'เสร็จสิ้น';
     case ReportStatus.CANCELLED:
-      return "ยกเลิก";
+      return 'ยกเลิก';
     default:
       return status;
   }
@@ -254,7 +262,7 @@ export const AllReports = () => {
                     className="px-2 py-1 rounded-full text-sm font-medium"
                     style={getStatusStyle(report.status)}
                   >
-                    {getStatusText(report.status)}
+                    {getStatusText(report.status, report)}
                   </span>
                 </div>
                 <p className="mt-2">ประเภท: {getTypeText(report.type)}</p>

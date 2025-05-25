@@ -11,19 +11,24 @@ interface ReportListProps {
 
 // Helper function to format dates
 const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: number }): string => {
+  console.log('Formatting date:', dateOrTimestamp);
   let date: Date;
   if ('_seconds' in dateOrTimestamp) {
     date = new Date(dateOrTimestamp._seconds * 1000);
+    console.log('Converted from timestamp:', date);
   } else {
     date = dateOrTimestamp;
+    console.log('Using direct date:', date);
   }
-  return date.toLocaleString('th-TH', {
+  const formatted = date.toLocaleString('th-TH', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
   });
+  console.log('Formatted result:', formatted);
+  return formatted;
 };
 
 const getStatusStyle = (status: ReportStatus) => {
@@ -51,7 +56,15 @@ const getStatusStyle = (status: ReportStatus) => {
   }
 };
 
-const getStatusText = (status: ReportStatus) => {
+const getStatusText = (status: ReportStatus, report?: Report): string => {
+  if (status === ReportStatus.CANCELLED && report) {
+    const cancelledStatus = report.statusHistory.find(
+      change => change.to === ReportStatus.CANCELLED
+    );
+    const reason = cancelledStatus?.remark || 'ไม่พบเหตุผลการยกเลิก';
+    return `ยกเลิก: ${reason}`;
+  }
+
   switch (status) {
     case ReportStatus.PENDING:
       return 'กำลังดำเนินการ';
@@ -131,7 +144,7 @@ export default function ReportList({ user }: ReportListProps) {
                     className="px-2 py-1 rounded-full text-sm font-medium"
                     style={getStatusStyle(report.status)}
                   >
-                    {getStatusText(report.status)}
+                    {getStatusText(report.status, report)}
                   </span>
                 </div>
                 <span className="text-sm text-gray-500">

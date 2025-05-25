@@ -3,6 +3,7 @@ import { api } from '../services/apiService';
 import { Report, ReportStatus, CatType } from '../types/report';
 import { Spinner } from './Spinner';
 import { useNavigate } from 'react-router-dom';
+import { theme } from '../theme';
 
 // Helper function to format dates
 const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: number }): string => {
@@ -47,6 +48,31 @@ const getTypeText = (type: CatType): string => {
       return "ลูกแมว";
     default:
       return type;
+  }
+};
+
+const getStatusStyle = (status: ReportStatus) => {
+  switch (status) {
+    case ReportStatus.PENDING:
+      return {
+        backgroundColor: theme.colors.status.pending.bg,
+        color: theme.colors.status.pending.text,
+      };
+    case ReportStatus.COMPLETED:
+      return {
+        backgroundColor: theme.colors.status.completed.bg,
+        color: theme.colors.status.completed.text,
+      };
+    case ReportStatus.CANCELLED:
+      return {
+        backgroundColor: theme.colors.status.cancelled.bg,
+        color: theme.colors.status.cancelled.text,
+      };
+    default:
+      return {
+        backgroundColor: theme.colors.status.pending.bg,
+        color: theme.colors.status.pending.text,
+      };
   }
 };
 
@@ -215,8 +241,15 @@ export const AllReports = () => {
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-bold">รายงาน #{report.id}</h3>
-                <p>สถานะ: {getStatusText(report.status)}</p>
-                <p>ประเภท: {getTypeText(report.type)}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span 
+                    className="px-2 py-1 rounded-full text-sm font-medium"
+                    style={getStatusStyle(report.status)}
+                  >
+                    {getStatusText(report.status)}
+                  </span>
+                </div>
+                <p className="mt-2">ประเภท: {getTypeText(report.type)}</p>
                 <p>จำนวนแมว: {report.numberOfCats} ตัว</p>
                 {report.description && <p>รายละเอียด: {report.description}</p>}
                 <p>เบอร์ติดต่อ: {report.contactPhone}</p>

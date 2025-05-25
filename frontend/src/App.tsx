@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { collection, query, getDocs, orderBy, limit } from 'firebase/firestore';
 import { firestore } from './firebase';
 import { useAuth } from './hooks/useAuth';
@@ -21,19 +22,114 @@ import './index.css';
 import CatPawWatermark from './components/CatPawWatermark';
 import { MapView } from './components/MapView';
 import { AllReports } from './components/AllReports';
-
-type ViewType = 'home' | 'report' | 'list' | 'map' | 'all-reports';
+import { NavigationBar, NavItem } from './components/NavigationBar';
+import { WelcomeCard } from './components/home-card/WelcomeCard';
+import { ReportStatsCard } from './components/home-card/ReportStatsCard';
+import { RescueStatsCard } from './components/home-card/RescueStatsCard';
+import { MapCard } from './components/home-card/MapCard';
+import { AllReportsCard } from './components/home-card/AllReportsCard';
+import { MyReportsCard } from './components/home-card/MyReportsCard';
+import { NewReportCard } from './components/home-card/NewReportCard';
 
 function AppContent() {
   const { user, loading: authLoading, signIn, logOut, cachedProfileUrl, imageError, setImageError } = useAuth();
   const { mode, setMode } = useMode();
   const { colors, isRescueMode } = useTheme();
-  const [view, setView] = useState<ViewType>('home');
+  const navigate = useNavigate();
+  const location = useLocation();
   const [recentCount, setRecentCount] = useState<number>(0);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [completedCount, setCompletedCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [userRole, setUserRole] = useState<string | undefined>();
+  const [navItems, setNavItems] = useState<NavItem[]>([]);
+
+  // Update navigation items based on mode
+  useEffect(() => {
+    const homeItem: NavItem = {
+      id: 'home',
+      text: 'หน้าหลัก',
+      icon: '/images/home-logo.svg'
+    };
+
+    if (mode === 'rescue') {
+      setNavItems([
+        homeItem,
+        {
+          id: 'map',
+          text: 'แผนที่',
+          iconComponent: (
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+          )
+        },
+        {
+          id: 'all-reports',
+          text: 'รายการทั้งหมด',
+          iconComponent: (
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          )
+        }
+      ]);
+    } else {
+      setNavItems([
+        homeItem,
+        {
+          id: 'report',
+          text: 'แจ้งข้อมูล',
+          iconComponent: (
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          )
+        },
+        {
+          id: 'list',
+          text: 'รายการของฉัน',
+          iconComponent: (
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          )
+        }
+      ]);
+    }
+  }, [mode]);
+
+  // Update handleNavSelect function
+  const handleNavSelect = (id: string) => {
+    switch (id) {
+      case 'home':
+        navigate('/home');
+        break;
+      case 'report':
+        navigate('/submit');
+        break;
+      case 'list':
+        navigate('/my-reports');
+        break;
+      case 'map':
+        navigate('/map');
+        break;
+      case 'all-reports':
+        navigate('/reports');
+        break;
+    }
+  };
+
+  // Update getCurrentView function
+  const getCurrentView = () => {
+    const path = location.pathname;
+    if (path === '/home') return 'home';
+    if (path === '/submit') return 'report';
+    if (path === '/my-reports') return 'list';
+    if (path === '/map') return 'map';
+    if (path === '/reports') return 'all-reports';
+    return 'home';
+  };
 
   // Fetch user role
   useEffect(() => {
@@ -54,7 +150,7 @@ function AppContent() {
 
   // Fetch counts for the home page
   useEffect(() => {
-    if (user && view === 'home') {
+    if (user && getCurrentView() === 'home') {
       setLoading(true);
       const fetchCounts = async () => {
         try {
@@ -77,11 +173,11 @@ function AppContent() {
       
       fetchCounts();
     }
-  }, [user, view]);
+  }, [user]);
 
   const handleLogout = async (): Promise<void> => {
     await logOut();
-    setView('home');
+    navigate('/');
   };
 
   const renderContent = () => {
@@ -130,7 +226,7 @@ function AppContent() {
       );
     }
 
-    switch (view) {
+    switch (getCurrentView()) {
       case 'home':
         return (
           <div className="p-4 space-y-6">
@@ -204,139 +300,47 @@ function AppContent() {
               )}
             </div>
             
-            {/* Hero section */}
-            <div className={`bg-gradient-to-r ${getThemeGradient(isRescueMode)} text-white p-6 rounded-xl shadow-md`}>
-              <h1 className="text-2xl font-bold mb-2">ยินดีต้อนรับ / Welcome</h1>
-              <p className={`${getThemeColor(true, isRescueMode, 100)}`}>
-                {mode === 'rescue' ? 'ขอบคุณที่ช่วยเหลือแมวจรในชุมชนของเรา ♥' : 'ขอบคุณที่แจ้งข้อมูลแมวจรในชุมชนของเรา ♥'}
-              </p>
-            </div>
+            {/* Welcome Card */}
+            <WelcomeCard isRescueMode={isRescueMode} mode={mode} />
 
-            {/* Stats */}
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-              <h2 className="text-lg font-medium text-gray-700 mb-3">สถิติล่าสุด / Recent Activity</h2>
-              {mode === 'rescue' ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center">
-                    <div className={`w-12 h-12 ${getThemeBgLight(isRescueMode)} rounded-full flex items-center justify-center mr-4`}>
-                      <svg className={`w-6 h-6 ${getThemeColor(true, isRescueMode)}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">ช่วยเหลือสำเร็จ / Completed</p>
-                      <p className="text-xl font-semibold">{completedCount}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className={`w-12 h-12 ${getThemeBgLight(isRescueMode)} rounded-full flex items-center justify-center mr-4`}>
-                      <svg className={`w-6 h-6 ${getThemeColor(true, isRescueMode)}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">รอช่วยเหลือ / Pending</p>
-                      <p className="text-xl font-semibold">{pendingCount}</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center">
-                  <div className={`w-12 h-12 ${getThemeBgLight(isRescueMode)} rounded-full flex items-center justify-center mr-4`}>
-                    <svg className={`w-6 h-6 ${getThemeColor(true, isRescueMode)}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">จำนวนรายงานล่าสุด / Recent Reports</p>
-                    <p className="text-xl font-semibold">
-                      {loading ? 
-                        <span className="text-gray-400">กำลังโหลด / Loading...</span> : 
-                        recentCount
-                      }
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Stats Card */}
+            {mode === 'rescue' ? (
+              <RescueStatsCard 
+                isRescueMode={isRescueMode}
+                pendingCount={pendingCount}
+                completedCount={completedCount}
+              />
+            ) : (
+              <ReportStatsCard 
+                isRescueMode={isRescueMode}
+                loading={loading}
+                recentCount={recentCount}
+              />
+            )}
 
             {/* Feature cards */}
             <div className="grid grid-cols-1 gap-4 mb-4">
               {mode === 'rescue' ? (
                 <>
-                  <div 
-                    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center cursor-pointer hover:bg-gray-50"
-                    onClick={() => setView('map')}
-                  >
-                    <div className={`w-12 h-12 ${getThemeBgLight(isRescueMode)} rounded-full flex items-center justify-center mr-4`}>
-                      <svg className={`w-6 h-6 ${getThemeColor(true, isRescueMode)}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-800">แผนที่รายงาน</h3>
-                      <p className="text-sm text-gray-600">View reports on map</p>
-                    </div>
-                    <svg className="w-5 h-5 ml-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-
-                  <div 
-                    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center cursor-pointer hover:bg-gray-50"
-                    onClick={() => setView('all-reports')}
-                  >
-                    <div className={`w-12 h-12 ${getThemeBgLight(isRescueMode)} rounded-full flex items-center justify-center mr-4`}>
-                      <svg className={`w-6 h-6 ${getThemeColor(true, isRescueMode)}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-800">รายการทั้งหมด</h3>
-                      <p className="text-sm text-gray-600">View all reports</p>
-                    </div>
-                    <svg className="w-5 h-5 ml-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
+                  <MapCard 
+                    isRescueMode={isRescueMode}
+                    onClick={() => navigate('/map')}
+                  />
+                  <AllReportsCard 
+                    isRescueMode={isRescueMode}
+                    onClick={() => navigate('/reports')}
+                  />
                 </>
               ) : (
                 <>
-                  <div 
-                    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center cursor-pointer hover:bg-gray-50"
-                    onClick={() => setView('report')}
-                  >
-                    <div className={`w-12 h-12 ${getThemeBgLight(isRescueMode)} rounded-full flex items-center justify-center mr-4`}>
-                      <svg className={`w-6 h-6 ${getThemeColor(true, isRescueMode)}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-800">แจ้งข้อมูลแมวจร</h3>
-                      <p className="text-sm text-gray-600">Report stray cat information</p>
-                    </div>
-                    <svg className="w-5 h-5 ml-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-
-                  <div 
-                    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center cursor-pointer hover:bg-gray-50"
-                    onClick={() => setView('list')}
-                  >
-                    <div className={`w-12 h-12 ${getThemeBgLight(isRescueMode)} rounded-full flex items-center justify-center mr-4`}>
-                      <svg className={`w-6 h-6 ${getThemeColor(true, isRescueMode)}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-800">รายการของฉัน</h3>
-                      <p className="text-sm text-gray-600">View your reported cats</p>
-                    </div>
-                    <svg className="w-5 h-5 ml-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
+                  <NewReportCard 
+                    isRescueMode={isRescueMode}
+                    onClick={() => navigate('/submit')}
+                  />
+                  <MyReportsCard 
+                    isRescueMode={isRescueMode}
+                    onClick={() => navigate('/my-reports')}
+                  />
                 </>
               )}
             </div>
@@ -378,71 +382,25 @@ function AppContent() {
       
       {/* Main content */}
       <main className="flex-1 relative z-10 flex-col flex pb-bottom-bar">
-        {renderContent()}
+        <Routes>
+          <Route path="/" element={<Navigate to="/home" replace />} />
+          <Route path="/home" element={renderContent()} />
+          <Route path="/submit" element={renderContent()} />
+          <Route path="/my-reports" element={renderContent()} />
+          <Route path="/map" element={renderContent()} />
+          <Route path="/reports" element={renderContent()} />
+        </Routes>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className={`fixed bottom-0 left-0 right-0 backdrop-blur-md ${getThemeBg(isRescueMode)}/80 border-t z-20`}>
-        <div className="flex justify-around items-center h-16">
-          <button 
-            className={`flex flex-col items-center ${getThemeColor(view === 'home', isRescueMode)} flex-1`}
-            onClick={() => setView('home')}
-          >
-            <img 
-              src="/images/home-logo.svg" 
-              alt="Home" 
-              className={`w-6 h-6 ${view === 'home' ? getThemeFilter(isRescueMode) : 'filter-gray'}`}
-            />
-            <span className="text-xs mt-1">หน้าหลัก</span>
-          </button>
-
-          {mode === 'rescue' ? (
-            <>
-              <button 
-                className={`flex flex-col items-center ${getThemeColor(view === 'map', isRescueMode)} flex-1`}
-                onClick={() => setView('map')}
-              >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                <span className="text-xs mt-1">แผนที่</span>
-              </button>
-
-              <button 
-                className={`flex flex-col items-center ${getThemeColor(view === 'all-reports', isRescueMode)} flex-1`}
-                onClick={() => setView('all-reports')}
-              >
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <span className="text-xs mt-1">รายการทั้งหมด</span>
-              </button>
-            </>
-          ) : (
-            <>
-              <button 
-                className={`flex flex-col items-center ${getThemeColor(view === 'report', isRescueMode)} flex-1`}
-                onClick={() => setView('report')}
-              >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <span className="text-xs mt-1">แจ้งข้อมูล</span>
-              </button>
-
-              <button 
-                className={`flex flex-col items-center ${getThemeColor(view === 'list', isRescueMode)} flex-1`}
-                onClick={() => setView('list')}
-              >
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <span className="text-xs mt-1">รายการของฉัน</span>
-              </button>
-            </>
-          )}
-        </div>
-      </nav>
+      {/* Navigation Bar */}
+      {user && (
+        <NavigationBar
+          items={navItems}
+          selectedId={getCurrentView()}
+          onSelect={handleNavSelect}
+          isRescueMode={isRescueMode}
+        />
+      )}
     </div>
   );
 }

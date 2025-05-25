@@ -4,6 +4,8 @@ import {api} from './services/apiService';
 import { uploadImageAndGetUrl } from './services/storageService';
 import LocationPicker from './LocationPicker';
 import { CatType } from './types/report';
+import { useTheme } from './contexts/ThemeContext';
+import { getThemeColor, getThemeBg, getButtonGradient, getSecondaryButtonGradient } from './utils/themeUtils';
 
 interface Location {
   lat: number;
@@ -16,6 +18,7 @@ interface ReportFormProps {
 }
 
 export default function ReportForm({ user }: ReportFormProps) {
+  const { isRescueMode } = useTheme();
   /* ───── form state ───── */
   const [numCats, setNumCats] = useState<string>('1');
   const [type, setType] = useState<CatType>(CatType.STRAY);
@@ -118,11 +121,11 @@ export default function ReportForm({ user }: ReportFormProps) {
 
       {/* ───── scrollable form ───── */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <h1 className="text-xl font-bold mb-2">รายงานแมวจร</h1>
+        <h1 className={`text-xl font-bold mb-2 ${getThemeColor(true, isRescueMode)}`}>รายงานแมวจร</h1>
 
         {/* จำนวนแมว */}
         <div>
-          <label className="block mb-1 font-medium">จำนวนแมว</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>จำนวนแมว</label>
           <select
             value={numCats}
             onChange={(e) => setNumCats(e.target.value)}
@@ -138,7 +141,7 @@ export default function ReportForm({ user }: ReportFormProps) {
 
         {/* ประเภท */}
         <div>
-          <label className="block mb-1 font-medium">ประเภท</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>ประเภท</label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value as CatType)}
@@ -154,7 +157,7 @@ export default function ReportForm({ user }: ReportFormProps) {
 
         {/* เบอร์โทร */}
         <div>
-          <label className="block mb-1 font-medium">เบอร์โทรติดต่อ</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>เบอร์โทรติดต่อ</label>
           <input
             type="tel"
             pattern="[0-9]*"
@@ -169,7 +172,7 @@ export default function ReportForm({ user }: ReportFormProps) {
 
         {/* รายละเอียดเพิ่มเติม */}
         <div>
-          <label className="block mb-1 font-medium">รายละเอียดเพิ่มเติม (ถ้ามี)</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>รายละเอียดเพิ่มเติม (ถ้ามี)</label>
           <textarea
             placeholder="เช่น ลักษณะเด่นของแมว, สภาพแวดล้อม, ฯลฯ"
             className="w-full border rounded p-2"
@@ -182,7 +185,7 @@ export default function ReportForm({ user }: ReportFormProps) {
 
         {/* รูปภาพ */}
         <div>
-          <label className="block mb-1 font-medium">รูปภาพ (สูงสุด 3 รูป)</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>รูปภาพ (สูงสุด 3 รูป)</label>
           <input 
             type="file" 
             accept="image/*" 
@@ -207,18 +210,18 @@ export default function ReportForm({ user }: ReportFormProps) {
 
         {/* ตำแหน่ง */}
         <div>
-          <label className="block mb-1 font-medium">ตำแหน่ง</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>ตำแหน่ง</label>
           <button
             type="button"
             onClick={() => setShowPicker(true)}
             disabled={isSubmitting}
-            className="w-full bg-yellow-500 text-white py-2 rounded-lg"
+            className={`w-full bg-gradient-to-r ${getSecondaryButtonGradient(isRescueMode)} text-white py-2 rounded-lg`}
           >
             เลือกตำแหน่งบนแผนที่
           </button>
 
           {location && (
-            <p className="text-sm text-gray-700 mt-1">
+            <p className={`text-sm mt-1 ${getThemeColor(true, isRescueMode, 700)}`}>
               เลือกแล้ว: {location.description || `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
             </p>
           )}
@@ -226,12 +229,12 @@ export default function ReportForm({ user }: ReportFormProps) {
       </div>
 
       {/* ───── sticky footer submit ───── */}
-      <div className="p-4 border-t bg-white sticky bottom-0">
+      <div className={`p-4 border-t ${getThemeBg(isRescueMode)} sticky bottom-0`}>
         <button
           type="button"
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className={`w-full bg-blue-600 text-white py-3 rounded-lg text-lg ${
+          className={`w-full bg-gradient-to-r ${getButtonGradient(isRescueMode)} text-white py-3 rounded-lg text-lg ${
             isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >

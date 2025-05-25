@@ -28,8 +28,6 @@ const getStatusText = (status: ReportStatus): string => {
       return "กำลังดำเนินการ";
     case ReportStatus.COMPLETED:
       return "เสร็จสิ้น";
-    case ReportStatus.ON_HOLD:
-      return "รอดำเนินการ";
     case ReportStatus.CANCELLED:
       return "ยกเลิก";
     default:
@@ -144,61 +142,67 @@ export const AllReports = () => {
   return (
     <div className="p-4">
       <div className="mb-6 flex flex-wrap gap-4">
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-gray-700 mb-1">กรองตามสถานะ</label>
-          <select
-            className="p-2 border rounded"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as ReportStatus | '')}
-          >
-            <option value="">ทุกสถานะ</option>
-            {Object.values(ReportStatus).map((status) => (
-              <option key={status} value={status}>
-                {getStatusText(status)}
-              </option>
-            ))}
-          </select>
+        <div className="flex gap-4 justify-around flex-1">
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">กรองตามสถานะ</label>
+            <select
+              className="p-2 border rounded"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as ReportStatus | '')}
+            >
+              <option value="">ทุกสถานะ</option>
+              {Object.values(ReportStatus)
+                .filter(status => status !== ReportStatus.ON_HOLD)
+                .map((status) => (
+                  <option key={status} value={status}>
+                    {getStatusText(status)}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">กรองตามประเภท</label>
+            <select
+              className="p-2 border rounded"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as CatType | '')}
+            >
+              <option value="">ทุกประเภท</option>
+              {Object.values(CatType).map((type) => (
+                <option key={type} value={type}>
+                  {getTypeText(type)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-gray-700 mb-1">กรองตามประเภท</label>
-          <select
-            className="p-2 border rounded"
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as CatType | '')}
-          >
-            <option value="">ทุกประเภท</option>
-            {Object.values(CatType).map((type) => (
-              <option key={type} value={type}>
-                {getTypeText(type)}
-              </option>
-            ))}
-          </select>
-        </div>
+        <div className="flex gap-4 justify-around flex-1">
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">เรียงตาม</label>
+            <select
+              className="p-2 border rounded"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="createdAt">วันที่สร้าง</option>
+              <option value="status">สถานะ</option>
+              <option value="type">ประเภท</option>
+            </select>
+          </div>
 
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-gray-700 mb-1">เรียงตาม</label>
-          <select
-            className="p-2 border rounded"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="createdAt">วันที่สร้าง</option>
-            <option value="status">สถานะ</option>
-            <option value="type">ประเภท</option>
-          </select>
-        </div>
-
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-gray-700 mb-1">ลำดับ</label>
-          <select
-            className="p-2 border rounded"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-          >
-            <option value="desc">มากไปน้อย</option>
-            <option value="asc">น้อยไปมาก</option>
-          </select>
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">ลำดับ</label>
+            <select
+              className="p-2 border rounded"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+            >
+              <option value="desc">มากไปน้อย</option>
+              <option value="asc">น้อยไปมาก</option>
+            </select>
+          </div>
         </div>
       </div>
 

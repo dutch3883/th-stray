@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import {api} from './services/apiService';
-import { uploadImageAndGetUrl } from './services/storageService';
-import LocationPicker from './LocationPicker';
-import { CatType } from './types/report';
-import { useTheme } from './contexts/ThemeContext';
-import { getThemeColor, getThemeBg, getButtonGradient, getSecondaryButtonGradient } from './utils/themeUtils';
+import {api} from '../services/apiService';
+import { uploadImageAndGetUrl } from '../services/storageService';
+import LocationPicker from '../LocationPicker';
+import { CatType } from '../types/report';
+import { useTheme } from '../contexts/ThemeContext';
+import { getThemeColor, getThemeBg, getButtonGradient, getSecondaryButtonGradient } from '../utils/themeUtils';
 
 interface Location {
   lat: number;

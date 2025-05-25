@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
-import { api } from './services/apiService';
-import { Report, ReportDTO, ReportStatus } from './types/report';
-import { Spinner } from './components/Spinner';
-import { theme } from './theme';
+import { api } from '../services/apiService';
+import { Report, ReportDTO, ReportStatus } from '../types/report';
+import { Spinner } from '../components/Spinner';
+import { theme } from '../theme';
 
 interface ReportListProps {
   user: User;

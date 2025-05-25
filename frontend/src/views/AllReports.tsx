@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/apiService';
 import { Report, ReportStatus, CatType } from '../types/report';
-import { Spinner } from './Spinner';
+import { Spinner } from '../components/Spinner';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '../theme';
 

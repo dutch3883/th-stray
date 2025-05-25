@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { GoogleMap, useJsApiLoader, InfoWindow } from '@react-google-maps/api';
 import { api } from '../services/apiService';
 import { Report, ReportStatus, CatType } from '../types/report';
-import { Spinner } from './Spinner';
+import { Spinner } from '../components/Spinner';
 import { useSearchParams } from 'react-router-dom';
 
 const containerStyle = {

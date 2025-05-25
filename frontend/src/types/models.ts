@@ -1,7 +1,7 @@
 // src/models.ts
 
 import { Timestamp } from 'firebase/firestore';
-import { Report } from './types/report';
+import { Report } from './report';
 
 export type FirebaseTimestamp = Timestamp;
 

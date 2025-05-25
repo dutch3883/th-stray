@@ -16,13 +16,10 @@ import {
   getThemeBgLight,
   getTheme
 } from './utils/themeUtils';
-import ReportForm from './ReportForm';
-import ReportList from './ReportList';
 import './index.css';
 import CatPawWatermark from './components/CatPawWatermark';
-import { MapView } from './components/MapView';
-import { AllReports } from './components/AllReports';
 import { NavigationBar, NavItem } from './components/NavigationBar';
+import { LoginView } from './components/LoginView';
 import { WelcomeCard } from './components/home-card/WelcomeCard';
 import { ReportStatsCard } from './components/home-card/ReportStatsCard';
 import { RescueStatsCard } from './components/home-card/RescueStatsCard';
@@ -30,11 +27,16 @@ import { MapCard } from './components/home-card/MapCard';
 import { AllReportsCard } from './components/home-card/AllReportsCard';
 import { MyReportsCard } from './components/home-card/MyReportsCard';
 import { NewReportCard } from './components/home-card/NewReportCard';
+import { TipsCard } from './components/home-card/TipsCard';
+import ReportForm from './views/ReportForm';
+import ReportList from './views/ReportList';
+import { MapView } from './views/MapView';
+import { AllReports } from './views/AllReports';
 
 function AppContent() {
   const { user, loading: authLoading, signIn, logOut, cachedProfileUrl, imageError, setImageError } = useAuth();
   const { mode, setMode } = useMode();
-  const { colors, isRescueMode } = useTheme();
+  const { isRescueMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [recentCount, setRecentCount] = useState<number>(0);
@@ -182,48 +184,7 @@ function AppContent() {
 
   const renderContent = () => {
     if (!user) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 -mt-16 relative">
-          {/* Soft background gradient */}
-          <div className={`absolute inset-0 bg-gradient-to-br ${getBgGradient(isRescueMode)} opacity-60 z-[-1]`}></div>
-          
-          {/* Main content card */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm border border-gray-100 transform transition-all duration-300 hover:shadow-xl">
-            <h1 className="text-2xl font-bold mb-6 text-center text-gray-800">
-              แจ้งข้อมูลแมวจร
-            </h1>
-            
-            {/* Animated illustration */}
-            <div className="w-48 h-48 mx-auto mb-8 transform transition-all duration-500 hover:scale-105">
-              <img 
-                src="/images/login_image.png" 
-                alt="แจ้งข้อมูลแมวจร" 
-                className="w-full h-full object-contain"
-              />
-            </div>
-
-            <p className="text-base text-gray-600 mb-6 text-center">
-              ลงชื่อเข้าใช้เพื่อแจ้งข้อมูล
-            </p>
-
-            {/* Enhanced button */}
-            <button 
-              onClick={signIn} 
-              className={`w-full bg-gradient-to-r ${getButtonGradient(isRescueMode)} text-white py-3 rounded-lg font-medium shadow-md hover:shadow-lg transform transition-all duration-300 hover:-translate-y-1 flex items-center justify-center`}
-            >
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                <path fill="#fff" d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" />
-              </svg>
-              เข้าสู่ระบบด้วย Google
-            </button>
-          </div>
-          
-          {/* Subtle footer note */}
-          <p className="text-xs text-gray-500 mt-8 text-center">
-            ร่วมกันช่วยเหลือแมวจรในชุมชนของเรา ♥
-          </p>
-        </div>
-      );
+      return <LoginView />;
     }
 
     switch (getCurrentView()) {
@@ -345,21 +306,8 @@ function AppContent() {
               )}
             </div>
 
-            {/* Tips section */}
-            <div className={`${getThemeBgLight(isRescueMode)} border-${getTheme(isRescueMode).primary} p-5 rounded-xl border`}>
-              <h3 className={`font-medium ${getThemeColor(true, isRescueMode)} flex items-center`}>
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                เกร็ดความรู้ / Tips
-              </h3>
-              <p className={`text-sm ${getThemeColor(true, isRescueMode)} mt-2`}>
-                การถ่ายภาพแมวจรควรถ่ายให้เห็นลักษณะเด่นของแมว เช่น สี ลาย หรือความผิดปกติ เพื่อประโยชน์ในการติดตาม
-              </p>
-              <p className={`text-sm ${getThemeColor(true, isRescueMode)} mt-1`}>
-                When taking photos of stray cats, capture distinctive features like color, patterns or abnormalities to help with identification.
-              </p>
-            </div>
+            {/* Tips Card */}
+            <TipsCard isRescueMode={isRescueMode} />
           </div>
         );
       case 'report':

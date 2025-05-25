@@ -1,17 +1,37 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { getThemeBgLight, getThemeColor } from '../../utils/themeUtils';
+import { api } from '../../services/apiService';
+import { ReportStatus } from '../../types/report';
 
 interface RescueStatsCardProps {
   isRescueMode: boolean;
-  pendingCount: number;
-  completedCount: number;
 }
 
-export const RescueStatsCard: React.FC<RescueStatsCardProps> = ({ 
-  isRescueMode, 
-  pendingCount, 
-  completedCount 
-}) => {
+export const RescueStatsCard: React.FC<RescueStatsCardProps> = ({ isRescueMode }) => {
+  const [pendingCount, setPendingCount] = useState<number>(0);
+  const [completedCount, setCompletedCount] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        setLoading(true);
+        const [pending, completed] = await Promise.all([
+          api.countAllReports({ status: ReportStatus.PENDING }),
+          api.countAllReports({ status: ReportStatus.COMPLETED })
+        ]);
+        setPendingCount(pending);
+        setCompletedCount(completed);
+      } catch (error) {
+        console.error('Error fetching rescue stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCounts();
+  }, []);
+
   return (
     <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
       <h2 className="text-lg font-medium text-gray-700 mb-3">สถิติล่าสุด / Recent Activity</h2>
@@ -24,7 +44,12 @@ export const RescueStatsCard: React.FC<RescueStatsCardProps> = ({
           </div>
           <div>
             <p className="text-sm text-gray-500">ช่วยเหลือสำเร็จ / Completed</p>
-            <p className="text-xl font-semibold">{completedCount}</p>
+            <p className="text-xl font-semibold">
+              {loading ? 
+                <span className="text-gray-400">กำลังโหลด / Loading...</span> : 
+                completedCount
+              }
+            </p>
           </div>
         </div>
         <div className="flex items-center">
@@ -35,7 +60,12 @@ export const RescueStatsCard: React.FC<RescueStatsCardProps> = ({
           </div>
           <div>
             <p className="text-sm text-gray-500">รอช่วยเหลือ / Pending</p>
-            <p className="text-xl font-semibold">{pendingCount}</p>
+            <p className="text-xl font-semibold">
+              {loading ? 
+                <span className="text-gray-400">กำลังโหลด / Loading...</span> : 
+                pendingCount
+              }
+            </p>
           </div>
         </div>
       </div>

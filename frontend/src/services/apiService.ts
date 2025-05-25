@@ -40,6 +40,11 @@ export interface ListReportsParams {
   sortOrder: 'asc' | 'desc';
 }
 
+export interface CountReportsParams {
+  status?: ReportStatus;
+  type?: CatType;
+}
+
 // Firebase function references
 const createReportFn = httpsCallable<CreateReportParams, { id: string }>(functions, 'createReport');
 const listMyReportsFn = httpsCallable<{}, ReportDTO[]>(functions, 'listMyReports');
@@ -49,6 +54,8 @@ const cancelReportFn = httpsCallable<StatusChangeParams, void>(functions, 'cance
 const putReportOnHoldFn = httpsCallable<StatusChangeParams, void>(functions, 'putReportOnHold');
 const resumeReportFn = httpsCallable<StatusChangeParams, void>(functions, 'resumeReport');
 const completeReportFn = httpsCallable<StatusChangeParams, void>(functions, 'completeReport');
+const countAllReportsFn = httpsCallable<CountReportsParams, { count: number }>(functions, 'countAllReports');
+const countMyReportsFn = httpsCallable<{}, { count: number }>(functions, 'countMyReports');
 
 // Helper functions for type-safe API calls
 export const api = {
@@ -85,5 +92,15 @@ export const api = {
 
   completeReport: async (params: StatusChangeParams): Promise<void> => {
     await completeReportFn(params);
+  },
+
+  countAllReports: async (params?: CountReportsParams): Promise<number> => {
+    const result = await countAllReportsFn(params || {});
+    return result.data.count;
+  },
+
+  countMyReports: async (): Promise<number> => {
+    const result = await countMyReportsFn();
+    return result.data.count;
   },
 };

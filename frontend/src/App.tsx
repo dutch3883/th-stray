@@ -268,14 +268,10 @@ function AppContent() {
             {mode === 'rescue' ? (
               <RescueStatsCard 
                 isRescueMode={isRescueMode}
-                pendingCount={pendingCount}
-                completedCount={completedCount}
               />
             ) : (
               <ReportStatsCard 
                 isRescueMode={isRescueMode}
-                loading={loading}
-                recentCount={recentCount}
               />
             )}
 

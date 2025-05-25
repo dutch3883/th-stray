@@ -1,17 +1,31 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { getThemeBgLight, getThemeColor } from '../../utils/themeUtils';
+import { api } from '../../services/apiService';
 
 interface ReportStatsCardProps {
   isRescueMode: boolean;
-  loading: boolean;
-  recentCount: number;
 }
 
-export const ReportStatsCard: React.FC<ReportStatsCardProps> = ({ 
-  isRescueMode, 
-  loading, 
-  recentCount 
-}) => {
+export const ReportStatsCard: React.FC<ReportStatsCardProps> = ({ isRescueMode }) => {
+  const [recentCount, setRecentCount] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        setLoading(true);
+        const count = await api.countMyReports();
+        setRecentCount(count);
+      } catch (error) {
+        console.error('Error fetching report stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCount();
+  }, []);
+
   return (
     <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
       <h2 className="text-lg font-medium text-gray-700 mb-3">สถิติล่าสุด / Recent Activity</h2>

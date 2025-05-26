@@ -26,6 +26,10 @@ export const theme = {
         dark: '#DC2626',
       },
       status: {
+        onHold: {
+          bg: '#FEE2E2',
+          text: '#991B1B',
+        },
         pending: {
           bg: '#FEF3C7',
           text: '#92400E',

@@ -72,6 +72,8 @@ const getStatusText = (status: ReportStatus, report?: Report): string => {
   }
 
   switch (status) {
+    case ReportStatus.ON_HOLD:
+      return 'พักการดำเนินการ';
     case ReportStatus.PENDING:
       return 'กำลังดำเนินการ';
     case ReportStatus.COMPLETED:

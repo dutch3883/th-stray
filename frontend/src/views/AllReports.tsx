@@ -42,6 +42,8 @@ const getStatusText = (status: ReportStatus, report?: Report): string => {
       return 'เสร็จสิ้น';
     case ReportStatus.CANCELLED:
       return 'ยกเลิก';
+    case ReportStatus.ON_HOLD:
+      return 'พักการดำเนินการ';
     default:
       return status;
   }
@@ -64,6 +66,11 @@ const getTypeText = (type: CatType): string => {
 
 const getStatusStyle = (status: ReportStatus) => {
   switch (status) {
+    case ReportStatus.ON_HOLD:
+      return {
+        backgroundColor: theme.colors.status.onHold.bg,
+        color: theme.colors.status.onHold.text,
+      };
     case ReportStatus.PENDING:
       return {
         backgroundColor: theme.colors.status.pending.bg,

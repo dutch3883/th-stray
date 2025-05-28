@@ -25,6 +25,7 @@ jobs:
   build:
     name: Try Build Frontend
     runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -53,7 +54,7 @@ jobs:
     name: Deploy Frontend to Firebase Hosting
     needs: build
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
     if: github.ref == 'refs/heads/main' && success()  # Only deploy on main branch
     env:
       VITE_GOOGLE_MAPS_KEY: ${{ secrets.VITE_GOOGLE_MAPS_KEY }}

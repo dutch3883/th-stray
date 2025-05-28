@@ -3,7 +3,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from './firebase';
 
 interface Report {
-  id: string;
+  id: number;
   userId: string;
   type: string;
   status: 'submitted' | 'completed' | 'cancelled';
@@ -31,12 +31,12 @@ export default function AdminDashboard() {
     fetchReports();
   }, [filterStatus]);
 
-  const handleAction = async (id: string, action: 'complete' | 'cancel'): Promise<void> => {
+  const handleAction = async (id: number, action: 'complete' | 'cancel'): Promise<void> => {
     const functions = getFunctions(app);
     if (action === 'complete') {
       const image = prompt('Enter completion image URL:');
       if (!image) return;
-      const completeFn = httpsCallable<{ id: string; completionImage: string }, void>(
+      const completeFn = httpsCallable<{ id: number; completionImage: string }, void>(
         functions,
         'markReportComplete'
       );
@@ -44,7 +44,7 @@ export default function AdminDashboard() {
     } else {
       const reason = prompt('Enter cancel reason:');
       if (!reason) return;
-      const cancelFn = httpsCallable<{ id: string; reason: string }, void>(
+      const cancelFn = httpsCallable<{ id: number; reason: string }, void>(
         functions,
         'cancelReport'
       );

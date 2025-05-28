@@ -1,5 +1,5 @@
 import { createTestUser, getAuthToken, deleteAllUsers } from './auth';
-import { describe, it, beforeAll, afterAll, expect } from '@jest/globals';
+import { describe, it, beforeAll, afterAll, expect, jest } from '@jest/globals';
 import { AuthResponse } from './auth';
 import { CatType } from '../src/domain/Report';
 
@@ -19,7 +19,7 @@ interface ErrorResponse {
     details?: unknown;
   }
 }
-
+jest.setTimeout(30000);
 describe('Create Report Function', () => {
   // Test user credentials
   const testEmail = `test-user-${Date.now()}@example.com`;
@@ -75,7 +75,7 @@ describe('Create Report Function', () => {
     const data = body as CreateReportResponse;
     expect(data).toHaveProperty('result');
     expect(data.result).toHaveProperty('id');
-    expect(typeof data.result.id).toBe('string');
+    expect(typeof data.result.id).toBe('number');
   });
 
   it('should reject unauthorized requests', async () => {

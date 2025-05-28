@@ -21,7 +21,7 @@ export interface Location {
 
 // DTO for API responses
 export interface ReportDTO {
-  id: string;
+  id: number;
   status: ReportStatus;
   type: CatType;
   numberOfCats: number;

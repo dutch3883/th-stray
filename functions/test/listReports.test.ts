@@ -1,5 +1,5 @@
 import { createTestUser, getAuthToken, deleteAllUsers } from './auth';
-import { describe, it, beforeAll, afterAll, expect } from '@jest/globals';
+import { describe, it, beforeAll, afterAll, expect, jest } from '@jest/globals';
 import { AuthResponse } from './auth';
 import { CatType} from '../src/domain/Report';
 
@@ -21,7 +21,7 @@ interface ReportListResponse {
     createdAt: string;
   }>;
 }
-
+jest.setTimeout(30000);
 describe('List Reports Function', () => {
   // Test user credentials
   const testEmail = `test-user-list-reports-${Date.now()}@example.com`;

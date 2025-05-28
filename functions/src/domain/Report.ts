@@ -40,7 +40,7 @@ export function toDate(timestamp: FirestoreTimestamp | undefined): Date {
 }
 
 export interface ReportData {
-  id: string;
+  id: number;
   uid: string;
   numberOfCats: number;
   type: CatType;
@@ -51,7 +51,13 @@ export interface ReportData {
   status: ReportStatus;
   createdAt: Date;
   updatedAt: Date;
-  statusHistory: StatusChange[];
+  statusHistory: Array<{
+    from: ReportStatus;
+    to: ReportStatus;
+    changedAt: Date;
+    changedBy: string;
+    remark: string;
+  }>;
   reportId: number;
 }
 
@@ -66,7 +72,7 @@ export class Report {
 
   constructor(data: Partial<ReportData>) {
     this.data = {
-      id: data.id || "",
+      id: data.id || 0,
       uid: data.uid || "",
       numberOfCats: data.numberOfCats || 0,
       type: data.type || CatType.stray,
@@ -198,7 +204,7 @@ export class Report {
   }
 
   static fromFirestore(
-    id: string,
+    id: number,
     data: FirestoreReportData | undefined,
   ): Report {
     if (!data) {

@@ -81,14 +81,14 @@ class UpdateReportDto {
 }
 
 class UpdateReportRequestDto {
-  @IsString() reportId!: string;
+  @IsNumber() reportId!: number;
   @ValidateNested()
   @Type(() => UpdateReportDto)
   data!: UpdateReportDto;
 }
 
 class StatusChangeRequestDto {
-  @IsString() reportId!: string;
+  @IsNumber() reportId!: number;
   @IsString() remark!: string;
 }
 
@@ -132,10 +132,10 @@ export const createReport = functions.https.onCall(async (req) => {
       createdAt: timestamp,
       updatedAt: timestamp,
       statusHistory: [],
-      reportId, // Add the incremental ID
+      reportId,
     });
 
-    // Create the document with the incremental ID
+    // Create the document with the numeric ID
     await db
       .collection("reports")
       .doc(reportId.toString())
@@ -162,7 +162,7 @@ export const listMyReports = functions.https.onCall(async (req) => {
       return {
         id: data.reportId,
         ...(() => {
-          const report = Report.fromFirestore(doc.id, data).data;
+          const report = Report.fromFirestore(data.reportId, data).data;
           const plain = instanceToPlain(report);
           return plain;
         })(),
@@ -198,7 +198,7 @@ export const updateReport = functions.https.onCall(async (req) => {
   }
 
   const reportData = reportDoc.data() as FirestoreReportData;
-  const report = Report.fromFirestore(dto.reportId.toString(), reportData);
+  const report = Report.fromFirestore(dto.reportId, reportData);
 
   if (report.data.uid !== uid) {
     throw new HttpsError(
@@ -251,7 +251,7 @@ export const cancelReport = functions.https.onCall(async (req) => {
   }
 
   const reportData = reportDoc.data() as FirestoreReportData;
-  const report = Report.fromFirestore(dto.reportId.toString(), reportData);
+  const report = Report.fromFirestore(dto.reportId, reportData);
 
   if (report.data.uid !== uid) {
     throw new HttpsError(
@@ -286,7 +286,7 @@ export const putReportOnHold = functions.https.onCall(async (req) => {
     );
   }
 
-  const reportRef = db.collection("reports").doc(dto.reportId);
+  const reportRef = db.collection("reports").doc(dto.reportId.toString());
   const reportDoc = await reportRef.get();
 
   if (!reportDoc.exists) {
@@ -325,7 +325,7 @@ export const resumeReport = functions.https.onCall(async (req) => {
     );
   }
 
-  const reportRef = db.collection("reports").doc(dto.reportId);
+  const reportRef = db.collection("reports").doc(dto.reportId.toString());
   const reportDoc = await reportRef.get();
 
   if (!reportDoc.exists) {
@@ -361,7 +361,7 @@ export const completeReport = functions.https.onCall(async (req) => {
     );
   }
 
-  const reportRef = db.collection("reports").doc(dto.reportId);
+  const reportRef = db.collection("reports").doc(dto.reportId.toString());
   const reportDoc = await reportRef.get();
 
   if (!reportDoc.exists) {
@@ -421,7 +421,7 @@ export const listReports = functions.https.onCall(async (req) => {
       return {
         id: data.reportId,
         ...(() => {
-          const report = Report.fromFirestore(doc.id, data).data;
+          const report = Report.fromFirestore(data.reportId, data).data;
           const plain = instanceToPlain(report);
           return plain;
         })(),

@@ -75,7 +75,7 @@ describe('Create Report Function', () => {
     const data = body as CreateReportResponse;
     expect(data).toHaveProperty('result');
     expect(data.result).toHaveProperty('id');
-    expect(typeof data.result.id).toBe('string');
+    expect(typeof data.result.id).toBe('number');
   });
 
   it('should reject unauthorized requests', async () => {

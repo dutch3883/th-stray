@@ -51,6 +51,7 @@ export interface ReportData {
   status: ReportStatus;
   createdAt: Date;
   updatedAt: Date;
+  canSpeakEnglish: boolean;
   statusHistory: Array<{
     from: ReportStatus;
     to: ReportStatus;
@@ -83,6 +84,7 @@ export class Report {
       status: data.status || ReportStatus.pending,
       createdAt: data.createdAt || new Date(),
       updatedAt: data.updatedAt || new Date(),
+      canSpeakEnglish: data.canSpeakEnglish ?? false,
       statusHistory: data.statusHistory || [],
       reportId: data.reportId || 0,
     };

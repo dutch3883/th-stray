@@ -54,7 +54,7 @@ const getTypeText = (type: CatType): string => {
 
 export const MapView = () => {
   const [searchParams] = useSearchParams();
-  const reportId = searchParams.get('reportId');
+  const reportId = searchParams.get('reportId') ? Number(searchParams.get('reportId')) : null;
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -169,7 +169,7 @@ export const MapView = () => {
                 </div>
 
                 <button
-                  onclick="console.log('Button clicked'); window.dispatchEvent(new CustomEvent('updateStatus', { detail: '${report.id}' }))"
+                  onclick="console.log('Button clicked'); window.dispatchEvent(new CustomEvent('updateStatus', { detail: ${report.id} }))"
                   style="
                     background-color: #3b82f6;
                     color: white;
@@ -242,13 +242,12 @@ export const MapView = () => {
   useEffect(() => {
     const handleUpdateStatus = (event: CustomEvent) => {
       console.log('Update status event received:', event.detail);
-      const reportId = event.detail;
+      const reportId = Number(event.detail);
       const report = reports.find(r => r.id === reportId);
       console.log('Found report:', report);
       if (report) {
         setSelectedReport(report);
         setStatusModalOpen(true);
-        console.log('Modal state updated:', { selectedReport: report, statusModalOpen: true });
       }
     };
 

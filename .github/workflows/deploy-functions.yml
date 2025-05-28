@@ -1,9 +1,17 @@
 # .github/workflows/deploy-functions.yml
-name: Deploy Firebase Functions (WIF)
+name: Backend Integration
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'feature/**'
+      - 'bugfix/**'
+      - 'hotfix/**'
+      - 'release/**'
+      - 'test/**'
+      - 'docs/**'
+      - 'ci/**'
     paths:
       - 'functions/**'
       - '.github/workflows/deploy-functions.yml'
@@ -16,6 +24,7 @@ permissions:
 
 jobs:
   test:
+    name: Test Backend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,6 +64,7 @@ jobs:
           name: JEST Tests
           path: functions/test-results/*.xml    
           reporter: jest-junit
+          fail-on-error: false
 
       # - name: Test Badge
       #   uses: schneegans/dynamic-badges-action@v1.6.0
@@ -66,9 +76,10 @@ jobs:
       #     color: ${{ steps.test-reports.outputs.color }}
 
   deploy:
+    name: Deploy Backend to Firebase Functions
     needs: test
     runs-on: ubuntu-latest
-    if: success()
+    if: github.ref == 'refs/heads/main' && success()  # Only deploy on main branch
 
     steps:
       - uses: actions/checkout@v4

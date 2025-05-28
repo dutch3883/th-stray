@@ -24,12 +24,12 @@ export interface CreateReportParams {
 }
 
 export interface UpdateReportParams {
-  reportId: string;
+  reportId: number;
   data: CreateReportParams;
 }
 
 export interface StatusChangeParams {
-  reportId: string;
+  reportId: number;
   remark: string;
 }
 
@@ -46,7 +46,7 @@ export interface CountReportsParams {
 }
 
 // Firebase function references
-const createReportFn = httpsCallable<CreateReportParams, { id: string }>(functions, 'createReport');
+const createReportFn = httpsCallable<CreateReportParams, { id: number }>(functions, 'createReport');
 const listMyReportsFn = httpsCallable<{}, ReportDTO[]>(functions, 'listMyReports');
 const listReportsFn = httpsCallable<ListReportsParams, ReportDTO[]>(functions, 'listReports');
 const updateReportFn = httpsCallable<UpdateReportParams, void>(functions, 'updateReport');
@@ -59,7 +59,7 @@ const countMyReportsFn = httpsCallable<{}, { count: number }>(functions, 'countM
 
 // Helper functions for type-safe API calls
 export const api = {
-  createReport: async (params: CreateReportParams): Promise<string> => {
+  createReport: async (params: CreateReportParams): Promise<number> => {
     const result = await createReportFn(params);
     return result.data.id;
   },

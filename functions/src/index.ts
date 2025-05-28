@@ -27,6 +27,36 @@ import {
 admin.initializeApp();
 const db = admin.firestore();
 
+// Add this function to get the next report ID
+async function getNextReportId(): Promise<number> {
+  const counterRef = db.collection("counters").doc("reports");
+
+  try {
+    const result = await db.runTransaction(async (transaction) => {
+      const counterDoc = await transaction.get(counterRef);
+
+      if (!counterDoc.exists) {
+        // Initialize counter if it doesn't exist
+        transaction.set(counterRef, { currentId: 0 });
+        return 1;
+      }
+
+      const currentId = counterDoc.data()?.currentId || 0;
+      const nextId = currentId + 1;
+
+      // Update the counter
+      transaction.update(counterRef, { currentId: nextId });
+
+      return nextId;
+    });
+
+    return result;
+  } catch (error) {
+    logger.error("Error getting next report ID:", error);
+    throw new HttpsError("internal", "Could not generate report ID");
+  }
+}
+
 // ── DTOs & Validation ─────────────────────────────────────────────────────
 class CreateReportDto {
   @IsNumber() numberOfCats!: number;
@@ -93,6 +123,8 @@ export const createReport = functions.https.onCall(async (req) => {
 
   try {
     const timestamp = new Date();
+    const reportId = await getNextReportId();
+
     const report = new Report({
       ...instanceToPlain(dto),
       uid,
@@ -100,11 +132,16 @@ export const createReport = functions.https.onCall(async (req) => {
       createdAt: timestamp,
       updatedAt: timestamp,
       statusHistory: [],
+      reportId, // Add the incremental ID
     });
 
-    const ref = await db.collection("reports").add(report.toFirestore());
-    logger.info("created report", { id: ref.id });
-    return serializeResponse({ id: ref.id });
+    // Create the document with the incremental ID
+    await db
+      .collection("reports")
+      .doc(reportId.toString())
+      .set(report.toFirestore());
+    logger.info("created report", { id: reportId });
+    return serializeResponse({ id: reportId });
   } catch (e) {
     logger.error("firestore error", e);
     throw new HttpsError("internal", `Could not create report ${e} with data`);
@@ -123,7 +160,7 @@ export const listMyReports = functions.https.onCall(async (req) => {
     const results = snap.docs.map((doc) => {
       const data = doc.data() as unknown as FirestoreReportData;
       return {
-        id: doc.id,
+        id: data.reportId,
         ...(() => {
           const report = Report.fromFirestore(doc.id, data).data;
           const plain = instanceToPlain(report);
@@ -153,7 +190,7 @@ export const updateReport = functions.https.onCall(async (req) => {
     );
   }
 
-  const reportRef = db.collection("reports").doc(dto.reportId);
+  const reportRef = db.collection("reports").doc(dto.reportId.toString());
   const reportDoc = await reportRef.get();
 
   if (!reportDoc.exists) {
@@ -161,7 +198,7 @@ export const updateReport = functions.https.onCall(async (req) => {
   }
 
   const reportData = reportDoc.data() as FirestoreReportData;
-  const report = Report.fromFirestore(dto.reportId, reportData);
+  const report = Report.fromFirestore(dto.reportId.toString(), reportData);
 
   if (report.data.uid !== uid) {
     throw new HttpsError(
@@ -206,7 +243,7 @@ export const cancelReport = functions.https.onCall(async (req) => {
     );
   }
 
-  const reportRef = db.collection("reports").doc(dto.reportId);
+  const reportRef = db.collection("reports").doc(dto.reportId.toString());
   const reportDoc = await reportRef.get();
 
   if (!reportDoc.exists) {
@@ -214,7 +251,7 @@ export const cancelReport = functions.https.onCall(async (req) => {
   }
 
   const reportData = reportDoc.data() as FirestoreReportData;
-  const report = Report.fromFirestore(dto.reportId, reportData);
+  const report = Report.fromFirestore(dto.reportId.toString(), reportData);
 
   if (report.data.uid !== uid) {
     throw new HttpsError(
@@ -382,7 +419,7 @@ export const listReports = functions.https.onCall(async (req) => {
     const reports = snapshot.docs.map((doc) => {
       const data = doc.data() as unknown as FirestoreReportData;
       return {
-        id: doc.id,
+        id: data.reportId,
         ...(() => {
           const report = Report.fromFirestore(doc.id, data).data;
           const plain = instanceToPlain(report);

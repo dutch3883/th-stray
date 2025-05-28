@@ -52,6 +52,7 @@ export interface ReportData {
   createdAt: Date;
   updatedAt: Date;
   statusHistory: StatusChange[];
+  reportId: number;
 }
 
 export interface FirestoreReportData
@@ -77,6 +78,7 @@ export class Report {
       createdAt: data.createdAt || new Date(),
       updatedAt: data.updatedAt || new Date(),
       statusHistory: data.statusHistory || [],
+      reportId: data.reportId || 0,
     };
   }
 

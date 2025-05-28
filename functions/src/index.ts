@@ -190,8 +190,10 @@ export const updateReport = functions.https.onCall(async (req) => {
 
   // Find the report by reportId
   const reportsRef = db.collection("reports");
-  const querySnapshot = await reportsRef.where("reportId", "==", dto.reportId).get();
-  
+  const querySnapshot = await reportsRef
+    .where("reportId", "==", dto.reportId)
+    .get();
+
   if (querySnapshot.empty) {
     throw new HttpsError("not-found", "Report not found");
   }
@@ -245,8 +247,10 @@ export const cancelReport = functions.https.onCall(async (req) => {
 
   // Find the report by reportId
   const reportsRef = db.collection("reports");
-  const querySnapshot = await reportsRef.where("reportId", "==", dto.reportId).get();
-  
+  const querySnapshot = await reportsRef
+    .where("reportId", "==", dto.reportId)
+    .get();
+
   if (querySnapshot.empty) {
     throw new HttpsError("not-found", "Report not found");
   }
@@ -290,8 +294,10 @@ export const putReportOnHold = functions.https.onCall(async (req) => {
 
   // Find the report by reportId
   const reportsRef = db.collection("reports");
-  const querySnapshot = await reportsRef.where("reportId", "==", dto.reportId).get();
-  
+  const querySnapshot = await reportsRef
+    .where("reportId", "==", dto.reportId)
+    .get();
+
   if (querySnapshot.empty) {
     throw new HttpsError("not-found", "Report not found");
   }
@@ -331,8 +337,10 @@ export const resumeReport = functions.https.onCall(async (req) => {
 
   // Find the report by reportId
   const reportsRef = db.collection("reports");
-  const querySnapshot = await reportsRef.where("reportId", "==", dto.reportId).get();
-  
+  const querySnapshot = await reportsRef
+    .where("reportId", "==", dto.reportId)
+    .get();
+
   if (querySnapshot.empty) {
     throw new HttpsError("not-found", "Report not found");
   }
@@ -369,8 +377,10 @@ export const completeReport = functions.https.onCall(async (req) => {
 
   // Find the report by reportId
   const reportsRef = db.collection("reports");
-  const querySnapshot = await reportsRef.where("reportId", "==", dto.reportId).get();
-  
+  const querySnapshot = await reportsRef
+    .where("reportId", "==", dto.reportId)
+    .get();
+
   if (querySnapshot.empty) {
     throw new HttpsError("not-found", "Report not found");
   }

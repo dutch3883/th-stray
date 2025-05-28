@@ -20,10 +20,19 @@ interface ReportFormProps {
 export default function ReportForm({ user }: ReportFormProps) {
   const { isRescueMode } = useTheme();
   /* ───── form state ───── */
-  const [numCats, setNumCats] = useState<string>('1');
-  const [type, setType] = useState<CatType>(CatType.STRAY);
-  const [phone, setPhone] = useState<string>('');
-  const [description, setDescription] = useState<string>('');
+  const [formData, setFormData] = useState<{
+    type: CatType;
+    numberOfCats: number | 'not sure';
+    contactPhone: string;
+    description: string;
+    canSpeakEnglish: boolean | null;
+  }>({
+    type: CatType.STRAY,
+    numberOfCats: 1,
+    contactPhone: '',
+    description: '',
+    canSpeakEnglish: null,
+  });
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [location, setLocation] = useState<Location | null>(null);
@@ -33,17 +42,16 @@ export default function ReportForm({ user }: ReportFormProps) {
   const [showPicker, setShowPicker] = useState<boolean>(false);
 
   /* ───── submit handler ───── */
-  const handleSubmit = async (): Promise<void> => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
     if (!location) {
-      alert('กรุณาเลือกตำแหน่งแมวก่อน');
+      alert('กรุณาระบุตำแหน่งที่พบแมว');
       return;
     }
-
-    if (!phone) {
-      alert('กรุณากรอกเบอร์โทรติดต่อ');
+    if (formData.canSpeakEnglish === null) {
+      alert('กรุณาระบุความสามารถในการสื่อสารภาษาอังกฤษ');
       return;
     }
-
     setIsSubmitting(true);
 
     try {
@@ -57,24 +65,28 @@ export default function ReportForm({ user }: ReportFormProps) {
 
       // Create report with uploaded image URLs and converted number
       await api.createReport({
-        numberOfCats: numCats === 'not sure' ? 0 : parseInt(numCats, 10),
-        type,
-        contactPhone: phone,
-        description: description || undefined,
+        numberOfCats: formData.numberOfCats === 'not sure' ? 0 : formData.numberOfCats,
+        type: formData.type,
+        contactPhone: formData.contactPhone,
+        description: formData.description || undefined,
         images: uploadedImageUrls,
         location: {
           lat: location.lat,
           long: location.lng,
           description: location.description,
         },
+        canSpeakEnglish: formData.canSpeakEnglish,
       });
 
       alert('ส่งรายงานสำเร็จ!');
       /* reset form */
-      setNumCats('1');
-      setType(CatType.STRAY);
-      setPhone('');
-      setDescription('');
+      setFormData({
+        type: CatType.STRAY,
+        numberOfCats: 1,
+        contactPhone: '',
+        description: '',
+        canSpeakEnglish: null,
+      });
       setImages([]);
       setImagePreviewUrls([]);
       setLocation(null);
@@ -127,8 +139,8 @@ export default function ReportForm({ user }: ReportFormProps) {
         <div>
           <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>จำนวนแมว</label>
           <select
-            value={numCats}
-            onChange={(e) => setNumCats(e.target.value)}
+            value={formData.numberOfCats}
+            onChange={(e) => setFormData({ ...formData, numberOfCats: e.target.value === 'not sure' ? 'not sure' : parseInt(e.target.value, 10) })}
             className="w-full border rounded p-2"
             disabled={isSubmitting}
           >
@@ -143,8 +155,8 @@ export default function ReportForm({ user }: ReportFormProps) {
         <div>
           <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>ประเภท</label>
           <select
-            value={type}
-            onChange={(e) => setType(e.target.value as CatType)}
+            value={formData.type}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value as CatType })}
             className="w-full border rounded p-2"
             disabled={isSubmitting}
           >
@@ -164,8 +176,8 @@ export default function ReportForm({ user }: ReportFormProps) {
             inputMode="numeric"
             placeholder="0812345678"
             className="w-full border rounded p-2"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            value={formData.contactPhone}
+            onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
             disabled={isSubmitting}
           />
         </div>
@@ -176,11 +188,42 @@ export default function ReportForm({ user }: ReportFormProps) {
           <textarea
             placeholder="เช่น ลักษณะเด่นของแมว, สภาพแวดล้อม, ฯลฯ"
             className="w-full border rounded p-2"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             disabled={isSubmitting}
             rows={3}
           />
+        </div>
+
+        {/* สามารถสื่อสารภาษาอังกฤษได้หรือไม่ */}
+        <div>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>สามารถสื่อสารภาษาอังกฤษได้หรือไม่? *</label>
+          <div className="flex gap-4">
+            <label className="inline-flex items-center">
+              <input
+                type="radio"
+                className="form-radio"
+                name="canSpeakEnglish"
+                value="true"
+                checked={formData.canSpeakEnglish === true}
+                onChange={() => setFormData({ ...formData, canSpeakEnglish: true })}
+                disabled={isSubmitting}
+              />
+              <span className="ml-2">ได้</span>
+            </label>
+            <label className="inline-flex items-center">
+              <input
+                type="radio"
+                className="form-radio"
+                name="canSpeakEnglish"
+                value="false"
+                checked={formData.canSpeakEnglish === false}
+                onChange={() => setFormData({ ...formData, canSpeakEnglish: false })}
+                disabled={isSubmitting}
+              />
+              <span className="ml-2">ไม่ได้</span>
+            </label>
+          </div>
         </div>
 
         {/* รูปภาพ */}

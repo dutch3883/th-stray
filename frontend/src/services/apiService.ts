@@ -21,6 +21,7 @@ export interface CreateReportParams {
   description?: string;
   images: string[];
   location: Location;
+  canSpeakEnglish: boolean;
 }
 
 export interface UpdateReportParams {

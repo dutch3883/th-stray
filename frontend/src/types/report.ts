@@ -31,6 +31,7 @@ export interface ReportDTO {
   location: Location;
   createdAt: Date;
   updatedAt: Date;
+  canSpeakEnglish: boolean;
   statusHistory: Array<{
     from: ReportStatus;
     to: ReportStatus;

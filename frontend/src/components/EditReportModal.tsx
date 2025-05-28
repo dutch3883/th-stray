@@ -27,10 +27,19 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
 }) => {
   console.log('EditReportModal rendered with props:', { isOpen, report });
   const { isRescueMode } = useTheme();
-  const [numCats, setNumCats] = useState<string>(report.numberOfCats.toString());
-  const [type, setType] = useState<CatType>(report.type);
-  const [phone, setPhone] = useState<string>(report.contactPhone);
-  const [description, setDescription] = useState<string>(report.description || '');
+  const [formData, setFormData] = useState<{
+    numberOfCats: number;
+    type: CatType;
+    contactPhone: string;
+    description: string;
+    canSpeakEnglish: boolean;
+  }>({
+    numberOfCats: report.numberOfCats,
+    type: report.type,
+    contactPhone: report.contactPhone,
+    description: report.description || '',
+    canSpeakEnglish: report.canSpeakEnglish,
+  });
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>(report.images);
   const [location, setLocation] = useState<Location>({
@@ -41,50 +50,28 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPicker, setShowPicker] = useState<boolean>(false);
 
-  const handleSubmit = async () => {
-    if (!location) {
-      alert('กรุณาเลือกตำแหน่งแมวก่อน');
-      return;
-    }
-
-    if (!phone) {
-      alert('กรุณากรอกเบอร์โทรติดต่อ');
-      return;
-    }
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Upload new images if any
-      const uploadPromises = images.map((file, index) => {
-        const path = `reports/${report.id}/${Date.now()}-${index}.${file.name.split('.').pop()}`;
-        return uploadImageAndGetUrl(path, file);
-      });
-
-      const uploadedImageUrls = await Promise.all(uploadPromises);
-
-      // Update report with new data
       await api.updateReport({
         reportId: report.id,
         data: {
-          numberOfCats: numCats === 'not sure' ? 0 : parseInt(numCats, 10),
-          type,
-          contactPhone: phone,
-          description: description || undefined,
-          images: uploadedImageUrls.length > 0 ? uploadedImageUrls : report.images,
-          location: {
-            lat: location.lat,
-            long: location.lng,
-            description: location.description,
-          },
+          numberOfCats: formData.numberOfCats,
+          type: formData.type,
+          contactPhone: formData.contactPhone,
+          description: formData.description || undefined,
+          images: report.images,
+          location: report.location,
+          canSpeakEnglish: formData.canSpeakEnglish,
         },
       });
-
-      onReportUpdated();
       onClose();
-    } catch (err) {
-      console.error(err);
-      alert('อัปเดตรายงานไม่สำเร็จ โปรดลองอีกครั้ง');
+      onReportUpdated();
+    } catch (error) {
+      console.error('Error updating report:', error);
+      alert('Failed to update report. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -135,15 +122,14 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
           <div>
             <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>จำนวนแมว</label>
             <select
-              value={numCats}
-              onChange={(e) => setNumCats(e.target.value)}
+              value={formData.numberOfCats.toString()}
+              onChange={(e) => setFormData({ ...formData, numberOfCats: parseInt(e.target.value, 10) })}
               className="w-full border rounded p-2"
               disabled={isSubmitting}
             >
               {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>{n}</option>
               ))}
-              <option value="not sure">ไม่แน่ใจ</option>
             </select>
           </div>
 
@@ -151,8 +137,8 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
           <div>
             <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>ประเภท</label>
             <select
-              value={type}
-              onChange={(e) => setType(e.target.value as CatType)}
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value as CatType })}
               className="w-full border rounded p-2"
               disabled={isSubmitting}
             >
@@ -172,8 +158,8 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
               inputMode="numeric"
               placeholder="0812345678"
               className="w-full border rounded p-2"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              value={formData.contactPhone}
+              onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
               disabled={isSubmitting}
             />
           </div>
@@ -184,11 +170,40 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
             <textarea
               placeholder="เช่น ลักษณะเด่นของแมว, สภาพแวดล้อม, ฯลฯ"
               className="w-full border rounded p-2"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               disabled={isSubmitting}
               rows={3}
             />
+          </div>
+
+          {/* สามารถสื่อสารภาษาอังกฤษได้หรือไม่ */}
+          <div>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>สามารถสื่อสารภาษาอังกฤษได้หรือไม่?</label>
+            <div className="flex gap-4">
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  className="form-radio"
+                  name="canSpeakEnglish"
+                  value="true"
+                  checked={formData.canSpeakEnglish === true}
+                  onChange={() => setFormData({ ...formData, canSpeakEnglish: true })}
+                />
+                <span className="ml-2">ได้</span>
+              </label>
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  className="form-radio"
+                  name="canSpeakEnglish"
+                  value="false"
+                  checked={formData.canSpeakEnglish === false}
+                  onChange={() => setFormData({ ...formData, canSpeakEnglish: false })}
+                />
+                <span className="ml-2">ไม่ได้</span>
+              </label>
+            </div>
           </div>
 
           {/* รูปภาพ */}

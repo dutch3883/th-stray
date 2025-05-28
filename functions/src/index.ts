@@ -135,12 +135,10 @@ export const createReport = functions.https.onCall(async (req) => {
       reportId,
     });
 
-    // Create the document with the numeric ID
-    await db
-      .collection("reports")
-      .doc(reportId.toString())
-      .set(report.toFirestore());
-    logger.info("created report", { id: reportId });
+    // Create the document with a random ID
+    const docRef = db.collection("reports").doc();
+    await docRef.set(report.toFirestore());
+    logger.info("created report", { id: reportId, docId: docRef.id });
     return serializeResponse({ id: reportId });
   } catch (e) {
     logger.error("firestore error", e);
@@ -190,13 +188,15 @@ export const updateReport = functions.https.onCall(async (req) => {
     );
   }
 
-  const reportRef = db.collection("reports").doc(dto.reportId.toString());
-  const reportDoc = await reportRef.get();
-
-  if (!reportDoc.exists) {
+  // Find the report by reportId
+  const reportsRef = db.collection("reports");
+  const querySnapshot = await reportsRef.where("reportId", "==", dto.reportId).get();
+  
+  if (querySnapshot.empty) {
     throw new HttpsError("not-found", "Report not found");
   }
 
+  const reportDoc = querySnapshot.docs[0];
   const reportData = reportDoc.data() as FirestoreReportData;
   const report = Report.fromFirestore(dto.reportId, reportData);
 
@@ -219,7 +219,7 @@ export const updateReport = functions.https.onCall(async (req) => {
 
   try {
     const updatedReport = report.updateDetails(instanceToPlain(dto.data));
-    await reportRef.update(updatedReport.toFirestore());
+    await reportDoc.ref.update(updatedReport.toFirestore());
 
     logger.info("updated report", { id: dto.reportId });
     return serializeResponse({ id: dto.reportId });
@@ -243,13 +243,15 @@ export const cancelReport = functions.https.onCall(async (req) => {
     );
   }
 
-  const reportRef = db.collection("reports").doc(dto.reportId.toString());
-  const reportDoc = await reportRef.get();
-
-  if (!reportDoc.exists) {
+  // Find the report by reportId
+  const reportsRef = db.collection("reports");
+  const querySnapshot = await reportsRef.where("reportId", "==", dto.reportId).get();
+  
+  if (querySnapshot.empty) {
     throw new HttpsError("not-found", "Report not found");
   }
 
+  const reportDoc = querySnapshot.docs[0];
   const reportData = reportDoc.data() as FirestoreReportData;
   const report = Report.fromFirestore(dto.reportId, reportData);
 
@@ -262,7 +264,7 @@ export const cancelReport = functions.https.onCall(async (req) => {
 
   try {
     const cancelledReport = report.cancel(uid, dto.remark);
-    await reportRef.update(cancelledReport.toFirestore());
+    await reportDoc.ref.update(cancelledReport.toFirestore());
 
     logger.info("cancelled report", { id: dto.reportId });
     return serializeResponse(instanceToPlain(cancelledReport.data));
@@ -286,19 +288,21 @@ export const putReportOnHold = functions.https.onCall(async (req) => {
     );
   }
 
-  const reportRef = db.collection("reports").doc(dto.reportId.toString());
-  const reportDoc = await reportRef.get();
-
-  if (!reportDoc.exists) {
+  // Find the report by reportId
+  const reportsRef = db.collection("reports");
+  const querySnapshot = await reportsRef.where("reportId", "==", dto.reportId).get();
+  
+  if (querySnapshot.empty) {
     throw new HttpsError("not-found", "Report not found");
   }
 
+  const reportDoc = querySnapshot.docs[0];
   const reportData = reportDoc.data() as FirestoreReportData;
   const report = Report.fromFirestore(dto.reportId, reportData);
 
   try {
     const updatedReport = report.putOnHold(uid, dto.remark);
-    await reportRef.update(updatedReport.toFirestore());
+    await reportDoc.ref.update(updatedReport.toFirestore());
 
     logger.info("put report on hold", { id: dto.reportId });
     return serializeResponse(instanceToPlain(updatedReport.data));
@@ -325,19 +329,21 @@ export const resumeReport = functions.https.onCall(async (req) => {
     );
   }
 
-  const reportRef = db.collection("reports").doc(dto.reportId.toString());
-  const reportDoc = await reportRef.get();
-
-  if (!reportDoc.exists) {
+  // Find the report by reportId
+  const reportsRef = db.collection("reports");
+  const querySnapshot = await reportsRef.where("reportId", "==", dto.reportId).get();
+  
+  if (querySnapshot.empty) {
     throw new HttpsError("not-found", "Report not found");
   }
 
+  const reportDoc = querySnapshot.docs[0];
   const reportData = reportDoc.data() as FirestoreReportData;
   const report = Report.fromFirestore(dto.reportId, reportData);
 
   try {
     const updatedReport = report.resume(uid, dto.remark);
-    await reportRef.update(updatedReport.toFirestore());
+    await reportDoc.ref.update(updatedReport.toFirestore());
 
     logger.info("resumed report", { id: dto.reportId });
     return serializeResponse(instanceToPlain(updatedReport.data));
@@ -361,19 +367,21 @@ export const completeReport = functions.https.onCall(async (req) => {
     );
   }
 
-  const reportRef = db.collection("reports").doc(dto.reportId.toString());
-  const reportDoc = await reportRef.get();
-
-  if (!reportDoc.exists) {
+  // Find the report by reportId
+  const reportsRef = db.collection("reports");
+  const querySnapshot = await reportsRef.where("reportId", "==", dto.reportId).get();
+  
+  if (querySnapshot.empty) {
     throw new HttpsError("not-found", "Report not found");
   }
 
+  const reportDoc = querySnapshot.docs[0];
   const reportData = reportDoc.data() as FirestoreReportData;
   const report = Report.fromFirestore(dto.reportId, reportData);
 
   try {
     const updatedReport = report.complete(uid, dto.remark);
-    await reportRef.update(updatedReport.toFirestore());
+    await reportDoc.ref.update(updatedReport.toFirestore());
 
     logger.info("completed report", { id: dto.reportId });
     return serializeResponse(instanceToPlain(updatedReport.data));

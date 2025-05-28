@@ -200,13 +200,11 @@ export const AllReports = () => {
               onChange={(e) => setStatusFilter(e.target.value as ReportStatus | 'all')}
             >
               <option value="all">ทุกสถานะ</option>
-              {Object.values(ReportStatus)
-                .filter(status => status !== ReportStatus.ON_HOLD)
-                .map((status) => (
-                  <option key={status} value={status}>
-                    {getStatusText(status)}
-                  </option>
-                ))}
+              {Object.values(ReportStatus).map((status) => (
+                <option key={status} value={status}>
+                  {getStatusText(status)}
+                </option>
+              ))}
             </select>
           </div>
 

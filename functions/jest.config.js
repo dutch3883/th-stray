@@ -19,5 +19,13 @@ module.exports = {
     'src/**/*.ts',
     '!src/**/*.test.ts',
     '!src/**/*.d.ts'
-  ]
+  ],
+  // globals: {
+  //   'ts-jest': {
+  //     isolatedModules: true,
+  //     diagnostics: {
+  //       ignoreCodes: [6133, 6192, 6196, 2454] // Ignore unused variables and imports
+  //     }
+  //   }
+  // }
 }; 

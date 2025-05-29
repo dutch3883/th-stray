@@ -44,8 +44,39 @@ A full‐stack application to let users report injured, sick, or stray cats on a
 
 ### Back-end
 - **Firebase Cloud Functions** (TypeScript)  
-  - `createReport`, `listMyReports`, `adminListReports`, `changeStatus`  
+  - Report Management:
+    - `createReport`: Create a new cat report (roles: reporter)
+    - `listReports`: List all reports with filtering (roles: admin, rescuer)
+    - `listMyReports`: List reports created by the current user (roles: reporter)
+    - `completeReport`: Mark a report as completed (roles: admin, rescuer)
+    - `putReportOnHold`: Put a report on hold (roles: admin, rescuer)
+    - `cancelReport`: Cancel a report (roles: admin, rescuer)
+  - User Management:
+    - `createUser`: Create a new user (roles: admin)
+    - `listUsers`: List all users (roles: admin)
+    - `updateUser`: Update user details (roles: admin)
+    - `deleteUser`: Delete a user (roles: admin)
+  - Role Management:
+    - `setUserRole`: Set a user's role (roles: admin)
+    - `getUserRole`: Get a user's role (roles: admin)
 - **Firestore** for structured report data  
 - **Firebase Auth** for user & admin identity  
 - **Firebase Storage** for image uploads  
 - **GitHub Actions** + **Workload Identity Federation** for CI/CD
+
+### User Roles
+- **admin**: Full access to all functions and data
+- **rescuer**: Can view and manage reports
+- **reporter**: Can create and view their own reports
+
+### Report Status
+- **pending**: New report awaiting action
+- **on_hold**: Report temporarily paused
+- **completed**: Report successfully resolved
+- **cancelled**: Report cancelled
+
+### Report Types
+- **stray**: Stray cat
+- **injured**: Injured cat
+- **sick**: Sick cat
+- **kitten**: Kitten

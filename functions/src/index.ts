@@ -37,7 +37,7 @@ async function getNextReportId(): Promise<number> {
 
       if (!counterDoc.exists) {
         // Initialize counter if it doesn't exist
-        transaction.set(counterRef, { currentId: 0 });
+        transaction.set(counterRef, { currentId: 1 });
         return 1;
       }
 
@@ -430,11 +430,9 @@ export const listReports = functions.https.onCall(async (req) => {
       query = query.where("type", "==", dto.type);
     }
 
-    // Apply sorting
-    query = query.orderBy(dto.sortBy, dto.sortOrder);
-
+    // Get all documents that match the filters
     const snapshot = await query.get();
-    const reports = snapshot.docs.map((doc) => {
+    let reports = snapshot.docs.map((doc) => {
       const data = doc.data() as unknown as FirestoreReportData;
       return {
         id: data.reportId,
@@ -445,6 +443,35 @@ export const listReports = functions.https.onCall(async (req) => {
         })(),
       };
     });
+
+    // Apply sorting manually if filters are present
+    if (dto.status || dto.type) {
+      reports.sort((a, b) => {
+        const aValue = a[dto.sortBy as keyof typeof a];
+        const bValue = b[dto.sortBy as keyof typeof b];
+        
+        if (dto.sortOrder === 'asc') {
+          return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        } else {
+          return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+        }
+      });
+    } else {
+      // If no filters, use Firestore's built-in sorting
+      query = query.orderBy(dto.sortBy, dto.sortOrder);
+      const sortedSnapshot = await query.get();
+      reports = sortedSnapshot.docs.map((doc) => {
+        const data = doc.data() as unknown as FirestoreReportData;
+        return {
+          id: data.reportId,
+          ...(() => {
+            const report = Report.fromFirestore(data.reportId, data).data;
+            const plain = instanceToPlain(report);
+            return plain;
+          })(),
+        };
+      });
+    }
 
     logger.info("fetched reports", { count: reports.length, obj: reports });
     return serializeResponse(reports);

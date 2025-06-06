@@ -273,6 +273,12 @@ export default function ReportForm({ user }: ReportFormProps) {
 
       {/* ───── sticky footer submit ───── */}
       <div className={`p-4 border-t ${getThemeBg(isRescueMode)} sticky bottom-0`}>
+        {/* Disclaimer */}
+        <div className="mb-4 p-3 bg-gray-100 rounded-lg text-sm text-gray-600 flex items-start gap-2">
+          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-bold">i</div>
+          <p>We do our best to help every reported case of stray or injured cats. However, we cannot guarantee assistance in all situations due to limited resources. Thank you for your understanding.</p>
+        </div>
+
         <button
           type="button"
           onClick={handleSubmit}

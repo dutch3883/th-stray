@@ -3,7 +3,7 @@ import { GoogleMap, useJsApiLoader, InfoWindow } from '@react-google-maps/api';
 import { api } from '../services/apiService';
 import { Report, ReportStatus, CatType } from '../types/report';
 import { Spinner } from '../components/Spinner';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { StatusUpdateModal } from '../components/StatusUpdateModal';
 
 const containerStyle = {
@@ -53,7 +53,8 @@ const getTypeText = (type: CatType): string => {
 };
 
 export const MapView = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const reportId = searchParams.get('reportId') ? Number(searchParams.get('reportId')) : null;
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,6 +112,9 @@ export const MapView = () => {
       });
 
       marker.addListener('click', () => {
+        // Update URL with reportId
+        setSearchParams({ reportId: report.id.toString() });
+        
         if (infoWindowRef.current) {
           infoWindowRef.current.close();
         }
@@ -236,7 +240,7 @@ export const MapView = () => {
         mapRef.fitBounds(bounds);
       }
     }
-  }, [mapRef, filteredReports, isLoaded, reportId, reports]);
+  }, [mapRef, filteredReports, isLoaded, reportId, reports, setSearchParams]);
 
   // Add event listener for update status button
   useEffect(() => {

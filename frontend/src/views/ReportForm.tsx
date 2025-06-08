@@ -5,6 +5,7 @@ import { uploadImageAndGetUrl } from '../services/storageService';
 import LocationPicker from '../LocationPicker';
 import { CatType } from '../types/report';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { getThemeColor, getThemeBg, getButtonGradient, getSecondaryButtonGradient } from '../utils/themeUtils';
 
 interface Location {
@@ -19,6 +20,7 @@ interface ReportFormProps {
 
 export default function ReportForm({ user }: ReportFormProps) {
   const { isRescueMode } = useTheme();
+  const { t } = useLanguage();
   /* ───── form state ───── */
   const [formData, setFormData] = useState<{
     type: CatType;
@@ -45,11 +47,11 @@ export default function ReportForm({ user }: ReportFormProps) {
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!location) {
-      alert('กรุณาระบุตำแหน่งที่พบแมว');
+      alert(t('form.validation.location'));
       return;
     }
     if (formData.canSpeakEnglish === null) {
-      alert('กรุณาระบุความสามารถในการสื่อสารภาษาอังกฤษ');
+      alert(t('form.validation.english'));
       return;
     }
     setIsSubmitting(true);
@@ -78,7 +80,7 @@ export default function ReportForm({ user }: ReportFormProps) {
         canSpeakEnglish: formData.canSpeakEnglish,
       });
 
-      alert('ส่งรายงานสำเร็จ!');
+      alert(t('form.submit.success'));
       /* reset form */
       setFormData({
         type: CatType.STRAY,
@@ -92,7 +94,7 @@ export default function ReportForm({ user }: ReportFormProps) {
       setLocation(null);
     } catch (err) {
       console.error(err);
-      alert('ส่งรายงานไม่สำเร็จ โปรดลองอีกครั้ง');
+      alert(t('form.submit.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -133,11 +135,15 @@ export default function ReportForm({ user }: ReportFormProps) {
 
       {/* ───── scrollable form ───── */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <h1 className={`text-xl font-bold mb-2 ${getThemeColor(true, isRescueMode)}`}>รายงานแมวจร</h1>
+        <h1 className={`text-xl font-bold mb-2 ${getThemeColor(true, isRescueMode)}`}>
+          {t('form.title')}
+        </h1>
 
         {/* จำนวนแมว */}
         <div>
-          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>จำนวนแมว</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>
+            {t('form.cat.number')}
+          </label>
           <select
             value={formData.numberOfCats}
             onChange={(e) => setFormData({ ...formData, numberOfCats: e.target.value === 'not sure' ? 'not sure' : parseInt(e.target.value, 10) })}
@@ -147,34 +153,38 @@ export default function ReportForm({ user }: ReportFormProps) {
             {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
               <option key={n} value={n}>{n}</option>
             ))}
-            <option value="not sure">ไม่แน่ใจ</option>
+            <option value="not sure">{t('form.cat.not_sure')}</option>
           </select>
         </div>
 
         {/* ประเภท */}
         <div>
-          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>ประเภท</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>
+            {t('form.cat.type.label')}
+          </label>
           <select
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value as CatType })}
             className="w-full border rounded p-2"
             disabled={isSubmitting}
           >
-            <option value={CatType.STRAY}>แมวจร</option>
-            <option value={CatType.INJURED}>บาดเจ็บ</option>
-            <option value={CatType.SICK}>ป่วย</option>
-            <option value={CatType.KITTEN}>ลูกแมว</option>
+            <option value={CatType.STRAY}>{t('common.cat.type.stray')}</option>
+            <option value={CatType.INJURED}>{t('common.cat.type.injured')}</option>
+            <option value={CatType.SICK}>{t('common.cat.type.sick')}</option>
+            <option value={CatType.KITTEN}>{t('common.cat.type.kitten')}</option>
           </select>
         </div>
 
         {/* เบอร์โทร */}
         <div>
-          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>เบอร์โทรติดต่อ</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>
+            {t('form.contact.phone')}
+          </label>
           <input
             type="tel"
             pattern="[0-9]*"
             inputMode="numeric"
-            placeholder="0812345678"
+            placeholder={t('form.contact.phone')}
             className="w-full border rounded p-2"
             value={formData.contactPhone}
             onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
@@ -184,9 +194,11 @@ export default function ReportForm({ user }: ReportFormProps) {
 
         {/* รายละเอียดเพิ่มเติม */}
         <div>
-          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>รายละเอียดเพิ่มเติม (ถ้ามี)</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>
+            {t('form.details.label')}
+          </label>
           <textarea
-            placeholder="เช่น ลักษณะเด่นของแมว, สภาพแวดล้อม, ฯลฯ"
+            placeholder={t('form.details.placeholder')}
             className="w-full border rounded p-2"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -197,7 +209,9 @@ export default function ReportForm({ user }: ReportFormProps) {
 
         {/* สามารถสื่อสารภาษาอังกฤษได้หรือไม่ */}
         <div>
-          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>สามารถสื่อสารภาษาอังกฤษได้หรือไม่? *</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>
+            {t('form.contact.english.label')}
+          </label>
           <div className="flex gap-4">
             <label className="inline-flex items-center">
               <input
@@ -209,7 +223,7 @@ export default function ReportForm({ user }: ReportFormProps) {
                 onChange={() => setFormData({ ...formData, canSpeakEnglish: true })}
                 disabled={isSubmitting}
               />
-              <span className="ml-2">ได้</span>
+              <span className="ml-2">{t('form.contact.english.yes')}</span>
             </label>
             <label className="inline-flex items-center">
               <input
@@ -221,14 +235,16 @@ export default function ReportForm({ user }: ReportFormProps) {
                 onChange={() => setFormData({ ...formData, canSpeakEnglish: false })}
                 disabled={isSubmitting}
               />
-              <span className="ml-2">ไม่ได้</span>
+              <span className="ml-2">{t('form.contact.english.no')}</span>
             </label>
           </div>
         </div>
 
         {/* รูปภาพ */}
         <div>
-          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>รูปภาพ (สูงสุด 3 รูป)</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>
+            {t('form.images.label')}
+          </label>
           <input 
             type="file" 
             accept="image/*" 
@@ -253,19 +269,21 @@ export default function ReportForm({ user }: ReportFormProps) {
 
         {/* ตำแหน่ง */}
         <div>
-          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>ตำแหน่ง</label>
+          <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>
+            {t('form.location.label')}
+          </label>
           <button
             type="button"
             onClick={() => setShowPicker(true)}
             disabled={isSubmitting}
             className={`w-full bg-gradient-to-r ${getSecondaryButtonGradient(isRescueMode)} text-white py-2 rounded-lg`}
           >
-            เลือกตำแหน่งบนแผนที่
+            {t('form.location.select')}
           </button>
 
           {location && (
             <p className={`text-sm mt-1 ${getThemeColor(true, isRescueMode, 700)}`}>
-              เลือกแล้ว: {location.description || `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
+              {t('form.location.selected')} {location.description || `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
             </p>
           )}
         </div>
@@ -276,7 +294,7 @@ export default function ReportForm({ user }: ReportFormProps) {
         {/* Disclaimer */}
         <div className="mb-4 p-3 bg-gray-100 rounded-lg text-sm text-gray-600 flex items-start gap-2">
           <div className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-bold">i</div>
-          <p>We do our best to help every reported case of stray or injured cats. However, we cannot guarantee assistance in all situations due to limited resources. Thank you for your understanding.</p>
+          <p>{t('form.disclaimer')}</p>
         </div>
 
         <button
@@ -287,7 +305,7 @@ export default function ReportForm({ user }: ReportFormProps) {
             isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
-          {isSubmitting ? 'กำลังส่งรายงาน...' : 'ส่งรายงาน'}
+          {isSubmitting ? t('form.submit.loading') : t('form.submit.button')}
         </button>
       </div>
     </div>

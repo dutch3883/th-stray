@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, InfoWindow } from '@react-google-maps/api';
 import { api } from '../services/apiService';
 import { Report, ReportStatus, CatType } from '../types/report';
@@ -16,10 +16,24 @@ const defaultCenter = {
   lng: 100.5018
 };
 
+// Bangkok and connected provinces boundaries
+const BANGKOK_BOUNDS = {
+  north: 14.2,  // Northern boundary
+  south: 13.4,  // Southern boundary
+  east: 100.8,  // Eastern boundary
+  west: 100.3   // Western boundary
+};
+
+// Function to check if a location is within Bangkok and connected provinces
+const isWithinBangkokArea = (lat: number, lng: number): boolean => {
+  return lat >= BANGKOK_BOUNDS.south && 
+         lat <= BANGKOK_BOUNDS.north && 
+         lng >= BANGKOK_BOUNDS.west && 
+         lng <= BANGKOK_BOUNDS.east;
+};
+
 const TH_LANG = 'th';
 const TH_REGION = 'TH';
-
-const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 
 // Add helper functions for Thai text
 const getStatusText = (status: ReportStatus): string => {
@@ -67,32 +81,108 @@ export const MapView = () => {
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+  const reportsRef = useRef<Report[]>([]);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
-    libraries: GOOGLE_MAPS_LIBRARIES,
     language: TH_LANG,
     region: TH_REGION,
   });
 
-  // Get marker SVG configuration after Google Maps is loaded
-  const getMarkerSVG = (type: CatType) => {
-    return {
-      path: "M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM9.5,9c0,-1.38 1.12,-2.5 2.5,-2.5s2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5 -2.5,-1.12 -2.5,-2.5z",
-      fillColor: "#FF0000", // Default red color
-      fillOpacity: 1,
-      strokeWeight: 1,
-      strokeColor: "#000000",
-      scale: 1.5,
-      anchor: new google.maps.Point(12, 24),
-    };
-  };
+  // Update reportsRef when reports change
+  useEffect(() => {
+    reportsRef.current = reports;
+  }, [reports]);
 
-  const filteredReports = reports.filter(report => {
-    const typeMatch = typeFilter === 'all' || report.type === typeFilter;
-    const statusMatch = statusFilter === 'all' || report.status === statusFilter;
-    return typeMatch && statusMatch;
-  });
+  const handleMarkerClick = useCallback((report: Report) => {
+    setSearchParams({ reportId: report.id.toString() });
+    
+    if (infoWindowRef.current) {
+      infoWindowRef.current.close();
+    }
+    const infoWindow = new google.maps.InfoWindow({
+      content: `
+        <div style="
+          min-width: 250px;
+          padding: 16px;
+          font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        ">
+          <div style="
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          ">
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              border-bottom: 2px solid #e5e7eb;
+              padding-bottom: 8px;
+            ">
+              <div style="
+                background-color: ${getMarkerColor(report.status)};
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+              "></div>
+              <h3 style="
+                margin: 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: #1f2937;
+              ">รายงาน #${report.id}</h3>
+            </div>
+
+            <div style="
+              display: grid;
+              grid-template-columns: auto 1fr;
+              gap: 8px 16px;
+              font-size: 14px;
+            ">
+              <div style="color: #6b7280;">สถานะ:</div>
+              <div style="color: #1f2937; font-weight: 500;">${getStatusText(report.status)}</div>
+              
+              <div style="color: #6b7280;">ประเภท:</div>
+              <div style="color: #1f2937; font-weight: 500;">${getTypeText(report.type)}</div>
+              
+              <div style="color: #6b7280;">จำนวนแมว:</div>
+              <div style="color: #1f2937; font-weight: 500;">${report.numberOfCats} ตัว</div>
+              
+              ${report.description ? `
+                <div style="color: #6b7280;">รายละเอียด:</div>
+                <div style="color: #1f2937; font-weight: 500;">${report.description}</div>
+              ` : ''}
+            </div>
+
+            <button
+              onclick="console.log('Button clicked'); window.dispatchEvent(new CustomEvent('updateStatus', { detail: ${report.id} }))"
+              style="
+                background-color: #3b82f6;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: background-color 0.2s;
+                margin-top: 8px;
+                width: 100%;
+              "
+              onmouseover="this.style.backgroundColor='#2563eb'"
+              onmouseout="this.style.backgroundColor='#3b82f6'"
+            >
+              อัปเดตสถานะ
+            </button>
+          </div>
+        </div>
+      `,
+      pixelOffset: new google.maps.Size(0, -10),
+    });
+    infoWindow.open(mapRef, markersRef.current.find(m => m.getTitle() === `รายงาน #${report.id}`));
+    infoWindowRef.current = infoWindow;
+    setSelectedReport(report);
+  }, [mapRef, setSearchParams]);
 
   // Update markers when map or filtered reports change
   useEffect(() => {
@@ -103,7 +193,11 @@ export const MapView = () => {
     markersRef.current = [];
 
     // Create new markers
-    const newMarkers = filteredReports.map(report => {
+    const newMarkers = reports.filter(report => {
+      const typeMatch = typeFilter === 'all' || report.type === typeFilter;
+      const statusMatch = statusFilter === 'all' || report.status === statusFilter;
+      return typeMatch && statusMatch;
+    }).map(report => {
       const marker = new google.maps.Marker({
         map: mapRef,
         position: { lat: report.location.lat, lng: report.location.long },
@@ -111,97 +205,7 @@ export const MapView = () => {
         title: `รายงาน #${report.id}`,
       });
 
-      marker.addListener('click', () => {
-        // Update URL with reportId
-        setSearchParams({ reportId: report.id.toString() });
-        
-        if (infoWindowRef.current) {
-          infoWindowRef.current.close();
-        }
-        const infoWindow = new google.maps.InfoWindow({
-          content: `
-            <div style="
-              min-width: 250px;
-              padding: 16px;
-              font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            ">
-              <div style="
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-              ">
-                <div style="
-                  display: flex;
-                  align-items: center;
-                  gap: 8px;
-                  border-bottom: 2px solid #e5e7eb;
-                  padding-bottom: 8px;
-                ">
-                  <div style="
-                    background-color: ${getMarkerColor(report.status)};
-                    width: 12px;
-                    height: 12px;
-                    border-radius: 50%;
-                  "></div>
-                  <h3 style="
-                    margin: 0;
-                    font-size: 18px;
-                    font-weight: 600;
-                    color: #1f2937;
-                  ">รายงาน #${report.id}</h3>
-                </div>
-
-                <div style="
-                  display: grid;
-                  grid-template-columns: auto 1fr;
-                  gap: 8px 16px;
-                  font-size: 14px;
-                ">
-                  <div style="color: #6b7280;">สถานะ:</div>
-                  <div style="color: #1f2937; font-weight: 500;">${getStatusText(report.status)}</div>
-                  
-                  <div style="color: #6b7280;">ประเภท:</div>
-                  <div style="color: #1f2937; font-weight: 500;">${getTypeText(report.type)}</div>
-                  
-                  <div style="color: #6b7280;">จำนวนแมว:</div>
-                  <div style="color: #1f2937; font-weight: 500;">${report.numberOfCats} ตัว</div>
-                  
-                  ${report.description ? `
-                    <div style="color: #6b7280;">รายละเอียด:</div>
-                    <div style="color: #1f2937; font-weight: 500;">${report.description}</div>
-                  ` : ''}
-                </div>
-
-                <button
-                  onclick="console.log('Button clicked'); window.dispatchEvent(new CustomEvent('updateStatus', { detail: ${report.id} }))"
-                  style="
-                    background-color: #3b82f6;
-                    color: white;
-                    border: none;
-                    border-radius: 6px;
-                    padding: 8px 16px;
-                    font-size: 14px;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: background-color 0.2s;
-                    margin-top: 8px;
-                    width: 100%;
-                  "
-                  onmouseover="this.style.backgroundColor='#2563eb'"
-                  onmouseout="this.style.backgroundColor='#3b82f6'"
-                >
-                  อัปเดตสถานะ
-                </button>
-              </div>
-            </div>
-          `,
-          pixelOffset: new google.maps.Size(0, -10),
-        });
-        infoWindow.open(mapRef, marker);
-        infoWindowRef.current = infoWindow;
-        setSelectedReport(report);
-      });
-
+      marker.addListener('click', () => handleMarkerClick(report));
       return marker;
     });
 
@@ -209,7 +213,7 @@ export const MapView = () => {
 
     // If there's a specific report to focus on
     if (reportId) {
-      const targetReport = reports.find(r => r.id === reportId);
+      const targetReport = reportsRef.current.find(r => r.id === reportId);
       if (targetReport) {
         const position = { lat: targetReport.location.lat, lng: targetReport.location.long };
         mapRef.setCenter(position);
@@ -222,25 +226,37 @@ export const MapView = () => {
         }
       }
     } else {
-      // Calculate bounds to fit all markers
+      // Calculate bounds to fit all markers within Bangkok area
       if (newMarkers.length > 0) {
         const bounds = new google.maps.LatLngBounds();
+        let hasValidMarkers = false;
+
         newMarkers.forEach(marker => {
-          bounds.extend(marker.getPosition()!);
+          const position = marker.getPosition();
+          if (position && isWithinBangkokArea(position.lat(), position.lng())) {
+            bounds.extend(position);
+            hasValidMarkers = true;
+          }
         });
 
-        const ne = bounds.getNorthEast();
-        const sw = bounds.getSouthWest();
-        const latPadding = (ne.lat() - sw.lat()) * 0.1;
-        const lngPadding = (ne.lng() - sw.lng()) * 0.1;
+        if (hasValidMarkers) {
+          const ne = bounds.getNorthEast();
+          const sw = bounds.getSouthWest();
+          const latPadding = (ne.lat() - sw.lat()) * 0.1;
+          const lngPadding = (ne.lng() - sw.lng()) * 0.1;
 
-        bounds.extend(new google.maps.LatLng(ne.lat() + latPadding, ne.lng() + lngPadding));
-        bounds.extend(new google.maps.LatLng(sw.lat() - latPadding, sw.lng() - lngPadding));
+          bounds.extend(new google.maps.LatLng(ne.lat() + latPadding, ne.lng() + lngPadding));
+          bounds.extend(new google.maps.LatLng(sw.lat() - latPadding, sw.lng() - lngPadding));
 
-        mapRef.fitBounds(bounds);
+          mapRef.fitBounds(bounds);
+        } else {
+          // If no valid markers, set default view of Bangkok
+          mapRef.setCenter(defaultCenter);
+          mapRef.setZoom(12);
+        }
       }
     }
-  }, [mapRef, filteredReports, isLoaded, reportId, reports, setSearchParams]);
+  }, [mapRef, reports, isLoaded, reportId, typeFilter, statusFilter, handleMarkerClick]);
 
   // Add event listener for update status button
   useEffect(() => {
@@ -320,6 +336,19 @@ export const MapView = () => {
       default:
         return "#808080"; // Gray
     }
+  };
+
+  // Get marker SVG configuration after Google Maps is loaded
+  const getMarkerSVG = (type: CatType) => {
+    return {
+      path: "M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM9.5,9c0,-1.38 1.12,-2.5 2.5,-2.5s2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5 -2.5,-1.12 -2.5,-2.5z",
+      fillColor: "#FF0000", // Default red color
+      fillOpacity: 1,
+      strokeWeight: 1,
+      strokeColor: "#000000",
+      scale: 1.5,
+      anchor: new google.maps.Point(12, 24),
+    };
   };
 
   if (loading || !isLoaded) {

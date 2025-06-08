@@ -33,7 +33,7 @@ export async function getUserRole(): Promise<UserRole> {
     // Force token refresh to ensure we have the latest claims
     await user.getIdToken(true);
     const idTokenResult = await user.getIdTokenResult();
-    console.log(JSON.stringify(idTokenResult))
+    // console.log(JSON.stringify(idTokenResult))
     return (idTokenResult.claims.role as UserRole) || 'reporter';
   } catch (error) {
     console.error('Error fetching user role:', error);

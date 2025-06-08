@@ -28,7 +28,7 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
   });
 
   
-  console.log(`Google maps key: ${JSON.stringify(import.meta.env)}`);
+  // console.log(`Google maps key: ${JSON.stringify(import.meta.env)}`);
 
   const [center, setCenter] = useState<google.maps.LatLngLiteral>(initialLocation ?? fallbackCenter);
   const [address, setAddress] = useState<string>(initialLocation?.description ?? 'กำลังค้นหาที่อยู่…');

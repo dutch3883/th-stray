@@ -5,6 +5,7 @@ import { Spinner } from '../components/Spinner';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '../theme';
 import { StatusUpdateModal } from '../components/StatusUpdateModal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Helper function to format dates
 const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: number } | string): string => {
@@ -96,6 +97,7 @@ const getStatusStyle = (status: ReportStatus) => {
 
 export const AllReports = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('all');
@@ -193,13 +195,13 @@ export const AllReports = () => {
       <div className="mb-6 flex flex-wrap gap-4">
         <div className="flex gap-4 justify-around flex-1">
           <div className="flex flex-col flex-1">
-            <label className="text-sm font-medium text-gray-700 mb-1">กรองตามสถานะ</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('report.filter.status')}</label>
             <select
               className="p-2 border rounded"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as ReportStatus | 'all')}
             >
-              <option value="all">ทุกสถานะ</option>
+              <option value="all">{t('report.filter.all_status')}</option>
               {Object.values(ReportStatus).map((status) => (
                 <option key={status} value={status}>
                   {getStatusText(status)}
@@ -209,13 +211,13 @@ export const AllReports = () => {
           </div>
 
           <div className="flex flex-col flex-1">
-            <label className="text-sm font-medium text-gray-700 mb-1">กรองตามประเภท</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('report.filter.type')}</label>
             <select
               className="p-2 border rounded"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as CatType | 'all')}
             >
-              <option value="all">ทุกประเภท</option>
+              <option value="all">{t('report.filter.all_type')}</option>
               {Object.values(CatType).map((type) => (
                 <option key={type} value={type}>
                   {getTypeText(type)}
@@ -227,27 +229,27 @@ export const AllReports = () => {
 
         <div className="flex gap-4 justify-around flex-1">
           <div className="flex flex-col flex-1">
-            <label className="text-sm font-medium text-gray-700 mb-1">เรียงตาม</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('report.sort.by')}</label>
             <select
               className="p-2 border rounded"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
-              <option value="createdAt">วันที่สร้าง</option>
-              <option value="status">สถานะ</option>
-              <option value="type">ประเภท</option>
+              <option value="createdAt">{t('report.sort.created_at')}</option>
+              <option value="status">{t('report.sort.status')}</option>
+              <option value="type">{t('report.sort.type')}</option>
             </select>
           </div>
 
           <div className="flex flex-col flex-1">
-            <label className="text-sm font-medium text-gray-700 mb-1">ลำดับ</label>
+            <label className="text-sm font-medium text-gray-700 mb-1">{t('report.sort.order')}</label>
             <select
               className="p-2 border rounded"
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
             >
-              <option value="desc">มากไปน้อย</option>
-              <option value="asc">น้อยไปมาก</option>
+              <option value="desc">{t('report.sort.desc')}</option>
+              <option value="asc">{t('report.sort.asc')}</option>
             </select>
           </div>
         </div>
@@ -261,7 +263,7 @@ export const AllReports = () => {
           >
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="font-bold">รายงาน #{report.id}</h3>
+                <h3 className="font-bold">{t('report.id')} #{report.id}</h3>
                 <div className="flex items-center gap-2 mt-1">
                   <span 
                     className="px-2 py-1 rounded-full text-sm font-medium"
@@ -270,25 +272,25 @@ export const AllReports = () => {
                     {getStatusText(report.status, report)}
                   </span>
                 </div>
-                <p className="mt-2">ประเภท: {getTypeText(report.type)}</p>
-                <p>จำนวนแมว: {report.numberOfCats} ตัว</p>
-                {report.description && <p>รายละเอียด: {report.description}</p>}
-                <p>เบอร์ติดต่อ: {report.contactPhone}</p>
-                <p>สถานที่: {report.location.description}</p>
-                <p>วันที่สร้าง: {formatDate(report.createdAt)}</p>
+                <p className="mt-2">{t('report.type')}: {getTypeText(report.type)}</p>
+                <p>{t('report.number_of_cats')}: {report.numberOfCats} {t('report.cats')}</p>
+                {report.description && <p>{t('report.description')}: {report.description}</p>}
+                <p>{t('report.contact')}: {report.contactPhone}</p>
+                <p>{t('report.location')}: {report.location.description}</p>
+                <p>{t('report.created_at')}: {formatDate(report.createdAt)}</p>
               </div>
               <div className="flex flex-col gap-2">
                 <button
                   className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                   onClick={() => handleUpdateStatus(report)}
                 >
-                  อัปเดตสถานะ
+                  {t('report.update_status')}
                 </button>
                 <button
                   className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
                   onClick={() => handleViewOnMap(report)}
                 >
-                  ดูบนแผนที่
+                  {t('report.view_map')}
                 </button>
               </div>
             </div>
@@ -298,7 +300,7 @@ export const AllReports = () => {
                   <img
                     key={index}
                     src={image}
-                    alt={`รายงาน ${report.id} - รูปที่ ${index + 1}`}
+                    alt={`${t('report.id')} ${report.id} - ${t('report.images')} ${index + 1}`}
                     className="h-32 w-32 object-cover rounded"
                   />
                 ))}

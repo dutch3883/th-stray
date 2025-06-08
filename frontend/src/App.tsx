@@ -31,6 +31,7 @@ import ReportForm from "./views/ReportForm";
 import ReportList from "./views/ReportList";
 import { MapView } from "./views/MapView";
 import { AllReports } from "./views/AllReports";
+import { NotFoundView } from "./views/NotFoundView";
 import { LanguageProvider, useLanguage } from "./contexts/LanguageContext";
 
 function AppContent() {
@@ -247,6 +248,7 @@ function AppContent() {
             <Route path="/my-reports" element={<ReportList user={user} />} />
             <Route path="/map" element={<MapView />} />
             <Route path="/reports" element={<AllReports />} />
+            <Route path="*" element={<NotFoundView />} />
           </Routes>
         </main>
 

@@ -94,3 +94,7 @@ text_name,english_translation,thai_translation
 "report.location","Location","สถานที่"
 "report.created_at","Created At","วันที่สร้าง"
 "report.images","Images","รูปภาพ"
+"error.not_found.title","Page Not Found","ไม่พบหน้าที่ต้องการ"
+"error.not_found.description","The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.","หน้าที่คุณกำลังค้นหาอาจถูกลบ เปลี่ยนชื่อ หรือไม่สามารถเข้าถึงได้ชั่วคราว"
+"error.not_found.go_back","Go Back","ย้อนกลับ"
+"error.not_found.go_home","Go to Home","กลับหน้าหลัก"

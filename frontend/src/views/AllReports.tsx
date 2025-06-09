@@ -203,10 +203,10 @@ export const AllReports = () => {
             >
               <option value="all">{t('report.filter.all_status')}</option>
               {Object.values(ReportStatus).map((status) => (
-                <option key={status} value={status}>
-                  {getStatusText(status)}
-                </option>
-              ))}
+                  <option key={status} value={status}>
+                    {getStatusText(status)}
+                  </option>
+                ))}
             </select>
           </div>
 

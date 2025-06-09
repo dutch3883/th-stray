@@ -9,7 +9,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 const containerStyle = {
   width: '100%',
-  height: 'calc(100vh - 120px)'
+  height: 'calc(100vh - 64px)' // Account for the filter bar height
 };
 
 const defaultCenter = {
@@ -36,20 +36,82 @@ const isWithinBangkokArea = (lat: number, lng: number): boolean => {
 const TH_LANG = 'th';
 const TH_REGION = 'TH';
 
-// Helper function to get marker color based on status
-const getMarkerColor = (status: ReportStatus): string => {
-  switch (status) {
-    case ReportStatus.PENDING:
-      return '#FFE44D'; // Softer Gold
-    case ReportStatus.COMPLETED:
-      return '#7FFF00'; // Softer Green
-    case ReportStatus.ON_HOLD:
-      return '#FFB6C1'; // Light Pink
-    case ReportStatus.CANCELLED:
-      return '#FF8C00'; // Dark Orange
+// Helper function to get marker color based on cat type
+const getMarkerColor = (type: CatType): string => {
+  switch (type) {
+    case CatType.STRAY:
+      return '#FFE44D'; // Yellow for stray cats
+    case CatType.INJURED:
+      return '#FF6B6B'; // Red for injured cats
+    case CatType.SICK:
+      return '#4ECDC4'; // Teal for sick cats
+    case CatType.KITTEN:
+      return '#95E1D3'; // Light green for kittens
     default:
       return '#FFFFFF'; // White
   }
+};
+
+// Helper function to get status color
+const getStatusColor = (status: ReportStatus): string => {
+  switch (status) {
+    case ReportStatus.PENDING:
+      return '#FFE44D'; // Yellow
+    case ReportStatus.COMPLETED:
+      return '#7FFF00'; // Green
+    case ReportStatus.ON_HOLD:
+      return '#FFB6C1'; // Light Pink
+    case ReportStatus.CANCELLED:
+      return '#FF8C00'; // Orange
+    default:
+      return '#FFFFFF'; // White
+  }
+};
+
+// Constants for map bounds
+const MIN_ZOOM_AREA = 9; // 9 square kilometers
+const DEGREES_PER_KM = 0.009; // Approximately 0.009 degrees per kilometer at the equator
+
+// Function to calculate zoom level for a given area in square kilometers
+const calculateZoomForArea = (area: number, lat: number): number => {
+  // Convert area to degrees
+  const sideLengthKm = Math.sqrt(area);
+  const latDelta = sideLengthKm * DEGREES_PER_KM;
+  const lngDelta = sideLengthKm * DEGREES_PER_KM / Math.cos(lat * Math.PI / 180);
+  
+  // Calculate zoom level (approximate formula)
+  const zoom = Math.floor(Math.log2(360 / Math.max(latDelta, lngDelta)));
+  return zoom;
+};
+
+// Function to calculate bounds for a minimum area
+const calculateMinBounds = (center: google.maps.LatLng): google.maps.LatLngBounds => {
+  const halfSide = Math.sqrt(MIN_ZOOM_AREA) / 2; // Half the side length of the square
+  const latDelta = halfSide * DEGREES_PER_KM;
+  const lngDelta = halfSide * DEGREES_PER_KM / Math.cos(center.lat() * Math.PI / 180);
+
+  return new google.maps.LatLngBounds(
+    new google.maps.LatLng(center.lat() - latDelta, center.lng() - lngDelta),
+    new google.maps.LatLng(center.lat() + latDelta, center.lng() + lngDelta)
+  );
+};
+
+// Function to check if bounds are smaller than minimum area
+const isBoundsSmallerThanMinArea = (bounds: google.maps.LatLngBounds): boolean => {
+  const ne = bounds.getNorthEast();
+  const sw = bounds.getSouthWest();
+  const latDelta = ne.lat() - sw.lat();
+  const lngDelta = ne.lng() - sw.lng();
+  const centerLat = (ne.lat() + sw.lat()) / 2;
+  
+  // Convert degrees to kilometers
+  const latKm = latDelta / DEGREES_PER_KM;
+  const lngKm = (lngDelta * Math.cos(centerLat * Math.PI / 180)) / DEGREES_PER_KM;
+  
+  // Calculate area in square kilometers
+  const area = latKm * lngKm;
+  
+  return area < MIN_ZOOM_AREA;
 };
 
 export const MapView = () => {
@@ -61,11 +123,13 @@ export const MapView = () => {
   const reportId = searchParams.get('reportId') ? Number(searchParams.get('reportId')) : null;
   const initialTypeFilter = searchParams.get('type') as CatType || 'all';
   const initialStatusFilter = searchParams.get('status') as ReportStatus || 'all';
+  const isSamePage = searchParams.get('samePage') === 'true';
+  const showModal = searchParams.get('modal') === 'true';
   
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [statusModalOpen, setStatusModalOpen] = useState(showModal);
   const [newStatus, setNewStatus] = useState<ReportStatus>(ReportStatus.PENDING);
   const [remark, setRemark] = useState('');
   const [typeFilter, setTypeFilter] = useState<CatType | 'all'>(initialTypeFilter);
@@ -86,21 +150,54 @@ export const MapView = () => {
     reportsRef.current = reports;
   }, [reports]);
 
-  // Update URL when filters change
+  // Update URL when filters or modal state changes
   useEffect(() => {
-    const params: Record<string, string> = {};
-    if (reportId) params.reportId = reportId.toString();
-    if (typeFilter !== 'all') params.type = typeFilter;
-    if (statusFilter !== 'all') params.status = statusFilter;
+    const params = new URLSearchParams(searchParams);
+    
+    if (reportId) {
+      params.set('reportId', reportId.toString());
+    } else {
+      params.delete('reportId');
+    }
+    
+    if (typeFilter !== 'all') {
+      params.set('type', typeFilter);
+    } else {
+      params.delete('type');
+    }
+    
+    if (statusFilter !== 'all') {
+      params.set('status', statusFilter);
+    } else {
+      params.delete('status');
+    }
+    
+    if (isSamePage) {
+      params.set('samePage', 'true');
+    } else {
+      params.delete('samePage');
+    }
+    
+    if (statusModalOpen) {
+      params.set('modal', 'true');
+    } else {
+      params.delete('modal');
+    }
+    
     setSearchParams(params);
-  }, [reportId, typeFilter, statusFilter, setSearchParams]);
+  }, [reportId, typeFilter, statusFilter, isSamePage, statusModalOpen, setSearchParams, searchParams]);
 
   const handleMarkerClick = useCallback((report: Report) => {
-    setSearchParams({ reportId: report.id.toString() });
+    setSearchParams({ 
+      reportId: report.id.toString(),
+      samePage: 'true'
+    });
     
     if (infoWindowRef.current) {
       infoWindowRef.current.close();
     }
+
+    // Create and open info window immediately
     const infoWindow = new google.maps.InfoWindow({
       content: `
         <div style="
@@ -121,7 +218,7 @@ export const MapView = () => {
               padding-bottom: 8px;
             ">
               <div style="
-                background-color: ${getMarkerColor(report.status)};
+                background-color: ${getMarkerColor(report.type)};
                 width: 12px;
                 height: 12px;
                 border-radius: 50%;
@@ -194,12 +291,14 @@ export const MapView = () => {
   const createCustomMarker = (
     position: google.maps.LatLng,
     status: ReportStatus,
+    type: CatType,
     reportId: number,
     map: google.maps.Map
   ) => {
     class CustomMarker extends google.maps.OverlayView {
       public position: google.maps.LatLng;
       public status: ReportStatus;
+      public type: CatType;
       public reportId: number;
       public marker: google.maps.Marker;
       private statusText: HTMLDivElement;
@@ -209,6 +308,7 @@ export const MapView = () => {
         super();
         this.position = position;
         this.status = status;
+        this.type = type;
         this.reportId = reportId;
         this.map = map;
 
@@ -218,7 +318,7 @@ export const MapView = () => {
           map: map,
           icon: {
             path: "M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM9.5,9c0,-1.38 1.12,-2.5 2.5,-2.5s2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5 -2.5,-1.12 -2.5,-2.5z",
-            fillColor: "#FF0000",
+            fillColor: getMarkerColor(type),
             fillOpacity: 1,
             strokeWeight: 1,
             strokeColor: "#000000",
@@ -232,37 +332,26 @@ export const MapView = () => {
         // Create status text
         this.statusText = document.createElement('div');
         this.statusText.style.position = 'absolute';
-        this.statusText.style.color = getMarkerColor(status);
         this.statusText.style.fontSize = '12px';
         this.statusText.style.fontWeight = 'bold';
         this.statusText.style.textAlign = 'center';
-        this.statusText.style.width = '100px';
-        this.statusText.style.marginLeft = '-50px';
-        this.statusText.style.marginTop = '-60px';
+        this.statusText.style.width = '120px';
+        this.statusText.style.marginLeft = '-60px';
+        this.statusText.style.marginTop = '-80px';
         this.statusText.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
         this.statusText.style.padding = '2px 4px';
         this.statusText.style.borderRadius = '4px';
         this.statusText.style.zIndex = '1';
 
-        // Set status text content with both status and ID
-        let statusText = '';
-        switch (status) {
-          case ReportStatus.PENDING:
-            statusText = t('report.status.pending');
-            break;
-          case ReportStatus.COMPLETED:
-            statusText = t('report.status.completed');
-            break;
-          case ReportStatus.ON_HOLD:
-            statusText = t('report.status.on_hold');
-            break;
-          case ReportStatus.CANCELLED:
-            statusText = t('report.status.cancelled');
-            break;
-          default:
-            statusText = status;
-        }
-        this.statusText.textContent = `#${reportId} - ${statusText}`;
+        // Set status text content with both type and status
+        const typeText = t(`common.cat.type.${type.toLowerCase()}`);
+        const statusText = t(`report.status.${status.toLowerCase()}`);
+        
+        // Create HTML content with different colors
+        this.statusText.innerHTML = `
+          <div style="color: white;">#${reportId} - ${typeText}</div>
+          <div style="color: ${getStatusColor(status)};">${statusText}</div>
+        `;
 
         this.setMap(map);
       }
@@ -318,6 +407,7 @@ export const MapView = () => {
       const marker = createCustomMarker(
         new google.maps.LatLng(report.location.lat, report.location.long),
         report.status,
+        report.type,
         report.id,
         mapRef
       );
@@ -332,9 +422,13 @@ export const MapView = () => {
     if (reportId) {
       const targetReport = reportsRef.current.find(r => r.id === reportId);
       if (targetReport) {
-        const position = { lat: targetReport.location.lat, lng: targetReport.location.long };
+        const position = new google.maps.LatLng(targetReport.location.lat, targetReport.location.long);
         mapRef.setCenter(position);
-        mapRef.setZoom(16);
+        
+        // Only apply min zoom if not navigating within the same page
+        if (!isSamePage) {
+          mapRef.setZoom(calculateZoomForArea(MIN_ZOOM_AREA, targetReport.location.lat));
+        }
         
         // Find and click the marker for this report
         const targetMarker = newMarkers.find(m => m.reportId === reportId);
@@ -347,16 +441,28 @@ export const MapView = () => {
       if (newMarkers.length > 0) {
         const bounds = new google.maps.LatLngBounds();
         let hasValidMarkers = false;
+        let centerLat = 0;
+        let centerLng = 0;
+        let validMarkerCount = 0;
 
         newMarkers.forEach(marker => {
           const position = marker.marker.getPosition();
           if (position && isWithinBangkokArea(position.lat(), position.lng())) {
             bounds.extend(position);
+            centerLat += position.lat();
+            centerLng += position.lng();
+            validMarkerCount++;
             hasValidMarkers = true;
           }
         });
 
         if (hasValidMarkers) {
+          // Calculate center point
+          centerLat /= validMarkerCount;
+          centerLng /= validMarkerCount;
+          const center = new google.maps.LatLng(centerLat, centerLng);
+
+          // Add padding to bounds
           const ne = bounds.getNorthEast();
           const sw = bounds.getSouthWest();
           const latPadding = (ne.lat() - sw.lat()) * 0.1;
@@ -365,7 +471,16 @@ export const MapView = () => {
           bounds.extend(new google.maps.LatLng(ne.lat() + latPadding, ne.lng() + lngPadding));
           bounds.extend(new google.maps.LatLng(sw.lat() - latPadding, sw.lng() - lngPadding));
 
-          mapRef.fitBounds(bounds);
+          // Check if bounds are smaller than minimum area and current zoom is larger than minimum
+          const currentZoom = mapRef.getZoom() || 0;
+          const minZoom = calculateZoomForArea(MIN_ZOOM_AREA, centerLat);
+          
+          if (isBoundsSmallerThanMinArea(bounds) && currentZoom > minZoom) {
+            mapRef.setCenter(center);
+            mapRef.setZoom(minZoom);
+          } else {
+            mapRef.fitBounds(bounds);
+          }
         } else {
           // If no valid markers, set default view of Bangkok
           mapRef.setCenter(defaultCenter);
@@ -441,7 +556,7 @@ export const MapView = () => {
 
   // Get marker SVG configuration after Google Maps is loaded
   const getMarkerSVG = (type: CatType, status: ReportStatus) => {
-    const statusColor = getMarkerColor(status);
+    const statusColor = getMarkerColor(type);
     return {
       path: "M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM9.5,9c0,-1.38 1.12,-2.5 2.5,-2.5s2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5 -2.5,-1.12 -2.5,-2.5z",
       fillColor: "#FF0000", // Default red color for marker
@@ -463,14 +578,14 @@ export const MapView = () => {
 
   if (loading || !isLoaded) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center">
+      <div className="h-[calc(100vh-64px)] w-full flex items-center justify-center">
         <Spinner />
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden">
       <div className="bg-white p-4 shadow-sm">
         <div className="flex gap-4">
           <div className="flex-1">

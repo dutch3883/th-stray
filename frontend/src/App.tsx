@@ -12,11 +12,11 @@ import { useAuth } from "./hooks/useAuth";
 import { getUserRole, isAdmin, isRescuer } from "./services/roleService";
 import { ModeProvider, useMode, AppMode } from "./contexts/ModeContext";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
-import {
-  getThemeColor,
-  getThemeBg,
-  getThemeGradient,
-  getThemeFilter,
+import { 
+  getThemeColor, 
+  getThemeBg, 
+  getThemeGradient, 
+  getThemeFilter, 
   getButtonGradient,
   getBgGradient,
   getThemeBgLight,
@@ -179,7 +179,7 @@ function AppContent() {
       if (user) {
         const role = await getUserRole();
         setUserRole(role);
-
+        
         // If user is not admin or rescuer, force report mode
         if (role !== "admin" && role !== "rescuer") {
           console.log("set mode to report because of user role:", role);
@@ -202,7 +202,7 @@ function AppContent() {
           );
           const snapshot = await getDocs(q);
           const reports = snapshot.docs.map((doc) => doc.data());
-
+          
           setRecentCount(reports.length);
           setPendingCount(reports.filter((r) => r.status === "pending").length);
           setCompletedCount(
@@ -214,7 +214,7 @@ function AppContent() {
           setLoading(false);
         }
       };
-
+      
       fetchCounts();
     }
   }, [user]);
@@ -229,11 +229,11 @@ function AppContent() {
       return <LoginView />;
     }
 
-    return (
+        return (
       <>
-        <main className="flex-1 relative z-10 flex-col flex pb-bottom-bar">
-          <Routes>
-            <Route path="/" element={<Navigate to="/home" replace />} />
+      <main className="flex-1 relative z-10 flex-col flex pb-bottom-bar">
+        <Routes>
+          <Route path="/" element={<Navigate to="/home" replace />} />
             <Route path="/home" element={
               <HomeView
                 user={user}
@@ -249,10 +249,10 @@ function AppContent() {
             <Route path="/map" element={<MapView />} />
             <Route path="/reports" element={<AllReports />} />
             <Route path="*" element={<NotFoundView />} />
-          </Routes>
-        </main>
+        </Routes>
+      </main>
 
-        {/* Navigation Bar */}
+      {/* Navigation Bar */}
         <NavigationBar
           items={navItems}
           selectedId={getCurrentView()}
@@ -285,11 +285,11 @@ function AppContent() {
 export default function App() {
   return (
     <LanguageProvider>
-      <ModeProvider>
-        <ThemeProvider>
-          <AppContent />
-        </ThemeProvider>
-      </ModeProvider>
+    <ModeProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </ModeProvider>
     </LanguageProvider>
   );
-}
+} 

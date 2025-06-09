@@ -5,6 +5,7 @@ import { Report, ReportStatus, CatType } from '../types/report';
 import { Spinner } from '../components/Spinner';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { StatusUpdateModal } from '../components/StatusUpdateModal';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const containerStyle = {
   width: '100%',
@@ -35,51 +36,42 @@ const isWithinBangkokArea = (lat: number, lng: number): boolean => {
 const TH_LANG = 'th';
 const TH_REGION = 'TH';
 
-// Add helper functions for Thai text
-const getStatusText = (status: ReportStatus): string => {
+// Helper function to get marker color based on status
+const getMarkerColor = (status: ReportStatus): string => {
   switch (status) {
     case ReportStatus.PENDING:
-      return "กำลังดำเนินการ";
+      return '#FFE44D'; // Softer Gold
     case ReportStatus.COMPLETED:
-      return "เสร็จสิ้น";
+      return '#7FFF00'; // Softer Green
     case ReportStatus.ON_HOLD:
-      return "รอดำเนินการ";
+      return '#FFB6C1'; // Light Pink
     case ReportStatus.CANCELLED:
-      return "ยกเลิก";
+      return '#FF8C00'; // Dark Orange
     default:
-      return status;
-  }
-};
-
-const getTypeText = (type: CatType): string => {
-  switch (type) {
-    case CatType.STRAY:
-      return "แมวจร";
-    case CatType.INJURED:
-      return "แมวบาดเจ็บ";
-    case CatType.SICK:
-      return "แมวป่วย";
-    case CatType.KITTEN:
-      return "ลูกแมว";
-    default:
-      return type;
+      return '#FFFFFF'; // White
   }
 };
 
 export const MapView = () => {
+  const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  
+  // Get initial states from URL parameters
   const reportId = searchParams.get('reportId') ? Number(searchParams.get('reportId')) : null;
+  const initialTypeFilter = searchParams.get('type') as CatType || 'all';
+  const initialStatusFilter = searchParams.get('status') as ReportStatus || 'all';
+  
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<ReportStatus>(ReportStatus.PENDING);
   const [remark, setRemark] = useState('');
-  const [typeFilter, setTypeFilter] = useState<CatType | 'all'>('all');
-  const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<CatType | 'all'>(initialTypeFilter);
+  const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>(initialStatusFilter);
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.Marker[]>([]);
+  const markersRef = useRef<any[]>([]);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const reportsRef = useRef<Report[]>([]);
 
@@ -93,6 +85,15 @@ export const MapView = () => {
   useEffect(() => {
     reportsRef.current = reports;
   }, [reports]);
+
+  // Update URL when filters change
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (reportId) params.reportId = reportId.toString();
+    if (typeFilter !== 'all') params.type = typeFilter;
+    if (statusFilter !== 'all') params.status = statusFilter;
+    setSearchParams(params);
+  }, [reportId, typeFilter, statusFilter, setSearchParams]);
 
   const handleMarkerClick = useCallback((report: Report) => {
     setSearchParams({ reportId: report.id.toString() });
@@ -130,7 +131,7 @@ export const MapView = () => {
                 font-size: 18px;
                 font-weight: 600;
                 color: #1f2937;
-              ">รายงาน #${report.id}</h3>
+              ">${t('map.report')} #${report.id}</h3>
             </div>
 
             <div style="
@@ -139,17 +140,17 @@ export const MapView = () => {
               gap: 8px 16px;
               font-size: 14px;
             ">
-              <div style="color: #6b7280;">สถานะ:</div>
-              <div style="color: #1f2937; font-weight: 500;">${getStatusText(report.status)}</div>
+              <div style="color: #6b7280;">${t('map.status')}:</div>
+              <div style="color: #1f2937; font-weight: 500;">${t(`report.status.${report.status.toLowerCase()}`)}</div>
               
-              <div style="color: #6b7280;">ประเภท:</div>
-              <div style="color: #1f2937; font-weight: 500;">${getTypeText(report.type)}</div>
+              <div style="color: #6b7280;">${t('map.type')}:</div>
+              <div style="color: #1f2937; font-weight: 500;">${t(`common.cat.type.${report.type.toLowerCase()}`)}</div>
               
-              <div style="color: #6b7280;">จำนวนแมว:</div>
-              <div style="color: #1f2937; font-weight: 500;">${report.numberOfCats} ตัว</div>
+              <div style="color: #6b7280;">${t('map.numberOfCats')}:</div>
+              <div style="color: #1f2937; font-weight: 500;">${report.numberOfCats} ${t('map.cats')}</div>
               
               ${report.description ? `
-                <div style="color: #6b7280;">รายละเอียด:</div>
+                <div style="color: #6b7280;">${t('map.description')}:</div>
                 <div style="color: #1f2937; font-weight: 500;">${report.description}</div>
               ` : ''}
             </div>
@@ -172,24 +173,140 @@ export const MapView = () => {
               onmouseover="this.style.backgroundColor='#2563eb'"
               onmouseout="this.style.backgroundColor='#3b82f6'"
             >
-              อัปเดตสถานะ
+              ${t('map.updateStatus')}
             </button>
           </div>
         </div>
       `,
       pixelOffset: new google.maps.Size(0, -10),
     });
-    infoWindow.open(mapRef, markersRef.current.find(m => m.getTitle() === `รายงาน #${report.id}`));
-    infoWindowRef.current = infoWindow;
-    setSelectedReport(report);
-  }, [mapRef, setSearchParams]);
+
+    // Find the marker by report ID and open the info window
+    const marker = markersRef.current.find(m => m.reportId === report.id);
+    if (marker && marker.marker) {
+      infoWindow.open(mapRef, marker.marker);
+      infoWindowRef.current = infoWindow;
+      setSelectedReport(report);
+    }
+  }, [mapRef, setSearchParams, t]);
+
+  // Custom marker class that extends OverlayView
+  const createCustomMarker = (
+    position: google.maps.LatLng,
+    status: ReportStatus,
+    reportId: number,
+    map: google.maps.Map
+  ) => {
+    class CustomMarker extends google.maps.OverlayView {
+      public position: google.maps.LatLng;
+      public status: ReportStatus;
+      public reportId: number;
+      public marker: google.maps.Marker;
+      private statusText: HTMLDivElement;
+      private map: google.maps.Map;
+
+      constructor() {
+        super();
+        this.position = position;
+        this.status = status;
+        this.reportId = reportId;
+        this.map = map;
+
+        // Create marker
+        this.marker = new google.maps.Marker({
+          position: position,
+          map: map,
+          icon: {
+            path: "M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM9.5,9c0,-1.38 1.12,-2.5 2.5,-2.5s2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5 -2.5,-1.12 -2.5,-2.5z",
+            fillColor: "#FF0000",
+            fillOpacity: 1,
+            strokeWeight: 1,
+            strokeColor: "#000000",
+            scale: 1.5,
+            anchor: new google.maps.Point(12, 24),
+          },
+          title: `${t('map.report')} #${reportId}`,
+          zIndex: 1
+        });
+
+        // Create status text
+        this.statusText = document.createElement('div');
+        this.statusText.style.position = 'absolute';
+        this.statusText.style.color = getMarkerColor(status);
+        this.statusText.style.fontSize = '12px';
+        this.statusText.style.fontWeight = 'bold';
+        this.statusText.style.textAlign = 'center';
+        this.statusText.style.width = '100px';
+        this.statusText.style.marginLeft = '-50px';
+        this.statusText.style.marginTop = '-60px';
+        this.statusText.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        this.statusText.style.padding = '2px 4px';
+        this.statusText.style.borderRadius = '4px';
+        this.statusText.style.zIndex = '1';
+
+        // Set status text content with both status and ID
+        let statusText = '';
+        switch (status) {
+          case ReportStatus.PENDING:
+            statusText = t('report.status.pending');
+            break;
+          case ReportStatus.COMPLETED:
+            statusText = t('report.status.completed');
+            break;
+          case ReportStatus.ON_HOLD:
+            statusText = t('report.status.on_hold');
+            break;
+          case ReportStatus.CANCELLED:
+            statusText = t('report.status.cancelled');
+            break;
+          default:
+            statusText = status;
+        }
+        this.statusText.textContent = `#${reportId} - ${statusText}`;
+
+        this.setMap(map);
+      }
+
+      onAdd() {
+        const panes = this.getPanes();
+        if (panes && panes.overlayLayer) {
+          panes.overlayLayer.appendChild(this.statusText);
+          (panes.overlayLayer as HTMLElement).style.zIndex = '1';
+        }
+      }
+
+      draw() {
+        const projection = this.getProjection();
+        if (projection) {
+          const position = projection.fromLatLngToDivPixel(this.position);
+          if (position) {
+            this.statusText.style.left = position.x + 'px';
+            this.statusText.style.top = position.y + 'px';
+          }
+        }
+      }
+
+      onRemove() {
+        if (this.statusText.parentNode) {
+          this.statusText.parentNode.removeChild(this.statusText);
+        }
+        this.marker.setMap(null);
+      }
+
+      addClickListener(callback: () => void) {
+        this.marker.addListener('click', callback);
+      }
+    }
+
+    return new CustomMarker();
+  };
 
   // Update markers when map or filtered reports change
   useEffect(() => {
     if (!mapRef || !isLoaded) return;
 
     // Clear existing markers
-    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current.forEach(marker => marker.onRemove());
     markersRef.current = [];
 
     // Create new markers
@@ -198,14 +315,14 @@ export const MapView = () => {
       const statusMatch = statusFilter === 'all' || report.status === statusFilter;
       return typeMatch && statusMatch;
     }).map(report => {
-      const marker = new google.maps.Marker({
-        map: mapRef,
-        position: { lat: report.location.lat, lng: report.location.long },
-        icon: getMarkerSVG(report.type),
-        title: `รายงาน #${report.id}`,
-      });
+      const marker = createCustomMarker(
+        new google.maps.LatLng(report.location.lat, report.location.long),
+        report.status,
+        report.id,
+        mapRef
+      );
 
-      marker.addListener('click', () => handleMarkerClick(report));
+      marker.addClickListener(() => handleMarkerClick(report));
       return marker;
     });
 
@@ -220,7 +337,7 @@ export const MapView = () => {
         mapRef.setZoom(16);
         
         // Find and click the marker for this report
-        const targetMarker = newMarkers.find(m => m.getTitle() === `รายงาน #${reportId}`);
+        const targetMarker = newMarkers.find(m => m.reportId === reportId);
         if (targetMarker) {
           google.maps.event.trigger(targetMarker, 'click');
         }
@@ -232,7 +349,7 @@ export const MapView = () => {
         let hasValidMarkers = false;
 
         newMarkers.forEach(marker => {
-          const position = marker.getPosition();
+          const position = marker.marker.getPosition();
           if (position && isWithinBangkokArea(position.lat(), position.lng())) {
             bounds.extend(position);
             hasValidMarkers = true;
@@ -256,7 +373,7 @@ export const MapView = () => {
         }
       }
     }
-  }, [mapRef, reports, isLoaded, reportId, typeFilter, statusFilter, handleMarkerClick]);
+  }, [mapRef, reports, isLoaded, reportId, typeFilter, statusFilter, handleMarkerClick, t]);
 
   // Add event listener for update status button
   useEffect(() => {
@@ -322,32 +439,25 @@ export const MapView = () => {
     }
   };
 
-  // Helper function to get marker color based on status
-  const getMarkerColor = (status: ReportStatus): string => {
-    switch (status) {
-      case ReportStatus.PENDING:
-        return "#FFA500"; // Orange
-      case ReportStatus.COMPLETED:
-        return "#00FF00"; // Green
-      case ReportStatus.ON_HOLD:
-        return "#FFFF00"; // Yellow
-      case ReportStatus.CANCELLED:
-        return "#FF0000"; // Red
-      default:
-        return "#808080"; // Gray
-    }
-  };
-
   // Get marker SVG configuration after Google Maps is loaded
-  const getMarkerSVG = (type: CatType) => {
+  const getMarkerSVG = (type: CatType, status: ReportStatus) => {
+    const statusColor = getMarkerColor(status);
     return {
       path: "M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM9.5,9c0,-1.38 1.12,-2.5 2.5,-2.5s2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5 -2.5,-1.12 -2.5,-2.5z",
-      fillColor: "#FF0000", // Default red color
+      fillColor: "#FF0000", // Default red color for marker
       fillOpacity: 1,
       strokeWeight: 1,
       strokeColor: "#000000",
       scale: 1.5,
       anchor: new google.maps.Point(12, 24),
+      labelOrigin: new google.maps.Point(12, 8),
+      label: {
+        text: t(`report.status.${status.toLowerCase()}`),
+        color: statusColor,
+        fontSize: "12px",
+        fontWeight: "bold",
+        padding: "2px 4px"
+      }
     };
   };
 
@@ -364,33 +474,37 @@ export const MapView = () => {
       <div className="bg-white p-4 shadow-sm">
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">กรองตามประเภท</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.filter.type')}</label>
             <select
               className="w-full p-2 border rounded"
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as CatType | 'all')}
+              onChange={(e) => {
+                setTypeFilter(e.target.value as CatType | 'all');
+                setSelectedReport(null);
+              }}
             >
-              <option value="all">ทุกประเภท</option>
-              {Object.values(CatType).map((type) => (
-                <option key={type} value={type}>
-                  {getTypeText(type)}
-                </option>
-              ))}
+              <option value="all">{t('report.filter.all_type')}</option>
+              <option value={CatType.STRAY}>{t('common.cat.type.stray')}</option>
+              <option value={CatType.INJURED}>{t('common.cat.type.injured')}</option>
+              <option value={CatType.SICK}>{t('common.cat.type.sick')}</option>
+              <option value={CatType.KITTEN}>{t('common.cat.type.kitten')}</option>
             </select>
           </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">กรองตามสถานะ</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.filter.status')}</label>
             <select
               className="w-full p-2 border rounded"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as ReportStatus | 'all')}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as ReportStatus | 'all');
+                setSelectedReport(null);
+              }}
             >
-              <option value="all">ทุกสถานะ</option>
-              {Object.values(ReportStatus).map((status) => (
-                <option key={status} value={status}>
-                  {getStatusText(status)}
-                </option>
-              ))}
+              <option value="all">{t('report.filter.all_status')}</option>
+              <option value={ReportStatus.PENDING}>{t('report.status.pending')}</option>
+              <option value={ReportStatus.COMPLETED}>{t('report.status.completed')}</option>
+              <option value={ReportStatus.ON_HOLD}>{t('report.status.on_hold')}</option>
+              <option value={ReportStatus.CANCELLED}>{t('report.status.cancelled')}</option>
             </select>
           </div>
         </div>

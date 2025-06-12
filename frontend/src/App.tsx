@@ -154,7 +154,7 @@ function AppContent() {
         navigate("/my-reports");
         break;
       case "map":
-        navigate("/map");
+        navigate("/map?status=pending");
         break;
       case "all-reports":
         navigate("/reports");

@@ -64,7 +64,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <>
             <MapCard
               isRescueMode={isRescueMode}
-              onClick={() => navigate("/map")}
+              onClick={() => navigate("/map?status=pending")}
             />
             <AllReportsCard
               isRescueMode={isRescueMode}

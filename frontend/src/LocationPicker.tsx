@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import { useSearchParams } from 'react-router-dom';
 
 interface Location {
   lat: number;
@@ -18,8 +19,26 @@ const fallbackCenter = { lat: 13.7563, lng: 100.5018 };   // Bangkok
 const TH_LANG = 'th';
 const TH_REGION = 'TH';
 
+// Bangkok and connected provinces boundaries
+const BANGKOK_BOUNDS = {
+  north: 14.2,  // Northern boundary
+  south: 13.4,  // Southern boundary
+  east: 100.8,  // Eastern boundary
+  west: 100.3   // Western boundary
+};
+
+// Function to check if a location is within Bangkok and connected provinces
+const isWithinBangkokArea = (lat: number, lng: number): boolean => {
+  return lat >= BANGKOK_BOUNDS.south && 
+         lat <= BANGKOK_BOUNDS.north && 
+         lng >= BANGKOK_BOUNDS.west && 
+         lng <= BANGKOK_BOUNDS.east;
+};
+
 export default function LocationPicker({ initialLocation, onConfirm, onCancel }: LocationPickerProps) {
-  /* ───── Load Maps JS API in Thai ───── */
+  const [searchParams] = useSearchParams();
+  const bypassLocation = searchParams.get('bypassLocation') === 'true';
+
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
     libraries: ['places'],
@@ -27,13 +46,12 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
     region: TH_REGION,
   });
 
-  
-  // console.log(`Google maps key: ${JSON.stringify(import.meta.env)}`);
-
   const [center, setCenter] = useState<google.maps.LatLngLiteral>(initialLocation ?? fallbackCenter);
   const [address, setAddress] = useState<string>(initialLocation?.description ?? 'กำลังค้นหาที่อยู่…');
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
   const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
 
   /* ───── Initialise Geocoder ───── */
   useEffect(() => {
@@ -57,14 +75,62 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
     );
   };
 
+  const getCurrentLocation = async () => {
+    setIsRequestingLocation(true);
+    setLocationError(null);
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      
+      if (!bypassLocation && !isWithinBangkokArea(latitude, longitude)) {
+        setLocationError('ตำแหน่งอยู่นอกพื้นที่กรุงเทพฯ และปริมณฑล');
+        return;
+      }
+
+      const newPosition = { lat: latitude, lng: longitude };
+      setCenter(newPosition);
+      refreshAddress(newPosition);
+      
+      if (mapRef) {
+        mapRef.setCenter(newPosition);
+        mapRef.setZoom(16);
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      if (error instanceof GeolocationPositionError) {
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError('กรุณาอนุญาตให้เข้าถึงตำแหน่งที่ตั้ง');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError('ไม่สามารถเข้าถึงตำแหน่งที่ตั้งได้');
+            break;
+          case error.TIMEOUT:
+            setLocationError('หมดเวลาการขอตำแหน่งที่ตั้ง');
+            break;
+          default:
+            setLocationError('เกิดข้อผิดพลาดในการขอตำแหน่งที่ตั้ง');
+        }
+      } else {
+        setLocationError('เกิดข้อผิดพลาดในการขอตำแหน่งที่ตั้ง');
+      }
+    } finally {
+      setIsRequestingLocation(false);
+    }
+  };
+
   /* ───── Browser geolocation (first load) ───── */
   useEffect(() => {
     if (initialLocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => {},
-      { timeout: 4000 }
-    );
+    getCurrentLocation();
   }, [initialLocation]);
 
   /* ───── Debounce address lookup ───── */
@@ -115,7 +181,55 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
               <circle cx="12" cy="10" r="3" fill="#ef4444" />
             </svg>
           </div>
+
+          {/* Current location button */}
+          <div className="absolute top-4 right-4 z-10">
+            <button
+              onClick={getCurrentLocation}
+              disabled={isRequestingLocation}
+              className="bg-white p-3 rounded-full shadow-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              title="ใช้ตำแหน่งปัจจุบัน"
+            >
+              {isRequestingLocation ? (
+                <svg className="animate-spin h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <>
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    className="h-5 w-5 text-gray-600" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" 
+                    />
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" 
+                    />
+                  </svg>
+                  <span className="text-sm font-medium text-gray-600">ตำแหน่งปัจจุบัน</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Error message */}
+        {locationError && (
+          <div className="px-4 py-2 text-sm text-red-600 bg-red-50">
+            {locationError}
+          </div>
+        )}
   
         {/* Action buttons - fixed to bottom */}
         <div className="p-4 bg-white border-t mt-auto">

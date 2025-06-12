@@ -36,17 +36,20 @@ const isWithinBangkokArea = (lat: number, lng: number): boolean => {
 const TH_LANG = 'th';
 const TH_REGION = 'TH';
 
+// Custom marker SVG path - Modern teardrop design
+const MARKER_PATH = "M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM9.5,9c0,-1.38 1.12,-2.5 2.5,-2.5s2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5 -2.5,-1.12 -2.5,-2.5z";
+
 // Helper function to get marker color based on cat type
 const getMarkerColor = (type: CatType): string => {
   switch (type) {
     case CatType.STRAY:
-      return '#FFE44D'; // Yellow for stray cats
+      return '#D4AF37'; // Darker gold for stray cats
     case CatType.INJURED:
-      return '#FF6B6B'; // Red for injured cats
+      return '#E63946'; // Darker coral red for injured cats
     case CatType.SICK:
-      return '#4ECDC4'; // Teal for sick cats
+      return '#2A9D8F'; // Darker turquoise for sick cats
     case CatType.KITTEN:
-      return '#95E1D3'; // Light green for kittens
+      return '#457B9D'; // Darker blue for kittens
     default:
       return '#FFFFFF'; // White
   }
@@ -56,13 +59,13 @@ const getMarkerColor = (type: CatType): string => {
 const getStatusColor = (status: ReportStatus): string => {
   switch (status) {
     case ReportStatus.PENDING:
-      return '#FFE44D'; // Yellow
+      return '#D4AF37'; // Darker gold
     case ReportStatus.COMPLETED:
-      return '#7FFF00'; // Green
+      return '#2A9D8F'; // Darker green
     case ReportStatus.ON_HOLD:
-      return '#FFB6C1'; // Light Pink
+      return '#E76F51'; // Darker orange
     case ReportStatus.CANCELLED:
-      return '#FF8C00'; // Orange
+      return '#E63946'; // Darker red
     default:
       return '#FFFFFF'; // White
   }
@@ -138,6 +141,7 @@ export const MapView = () => {
   const markersRef = useRef<any[]>([]);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const reportsRef = useRef<Report[]>([]);
+  const [isLegendCollapsed, setIsLegendCollapsed] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
@@ -253,7 +257,7 @@ export const MapView = () => {
             </div>
 
             <button
-              onclick="console.log('Button clicked'); window.dispatchEvent(new CustomEvent('updateStatus', { detail: ${report.id} }))"
+              id="updateStatusBtn"
               style="
                 background-color: #3b82f6;
                 color: white;
@@ -284,6 +288,16 @@ export const MapView = () => {
       infoWindow.open(mapRef, marker.marker);
       infoWindowRef.current = infoWindow;
       setSelectedReport(report);
+
+      // Add click listener to the button after the info window is opened
+      google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
+        const button = document.getElementById('updateStatusBtn');
+        if (button) {
+          button.addEventListener('click', () => {
+            setStatusModalOpen(true);
+          });
+        }
+      });
     }
   }, [mapRef, setSearchParams, t]);
 
@@ -303,6 +317,7 @@ export const MapView = () => {
       public marker: google.maps.Marker;
       private statusText: HTMLDivElement;
       private map: google.maps.Map;
+      private clickCallback: (() => void) | null = null;
 
       constructor() {
         super();
@@ -312,46 +327,80 @@ export const MapView = () => {
         this.reportId = reportId;
         this.map = map;
 
-        // Create marker
+        // Create marker with enhanced styling
         this.marker = new google.maps.Marker({
           position: position,
           map: map,
           icon: {
-            path: "M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM9.5,9c0,-1.38 1.12,-2.5 2.5,-2.5s2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5 -2.5,-1.12 -2.5,-2.5z",
+            path: MARKER_PATH,
             fillColor: getMarkerColor(type),
             fillOpacity: 1,
-            strokeWeight: 1,
-            strokeColor: "#000000",
-            scale: 1.5,
+            strokeWeight: 1.5,
+            strokeColor: "#FFFFFF",
+            scale: 1.8,
             anchor: new google.maps.Point(12, 24),
+            labelOrigin: new google.maps.Point(12, 8),
           },
           title: `${t('map.report')} #${reportId}`,
-          zIndex: 1
+          zIndex: 1,
+          animation: google.maps.Animation.DROP
         });
 
-        // Create status text
+        // Create status text with enhanced styling
         this.statusText = document.createElement('div');
         this.statusText.style.position = 'absolute';
         this.statusText.style.fontSize = '12px';
-        this.statusText.style.fontWeight = 'bold';
+        this.statusText.style.fontWeight = '600';
         this.statusText.style.textAlign = 'center';
         this.statusText.style.width = '120px';
         this.statusText.style.marginLeft = '-60px';
-        this.statusText.style.marginTop = '-80px';
-        this.statusText.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        this.statusText.style.padding = '2px 4px';
-        this.statusText.style.borderRadius = '4px';
-        this.statusText.style.zIndex = '1';
+        this.statusText.style.marginTop = '-90px';
+        this.statusText.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+        this.statusText.style.padding = '6px 8px';
+        this.statusText.style.borderRadius = '8px';
+        this.statusText.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        this.statusText.style.zIndex = '1000';
+        this.statusText.style.backdropFilter = 'blur(4px)';
+        this.statusText.style.border = '1px solid rgba(0,0,0,0.1)';
+        this.statusText.style.cursor = 'pointer';
+        this.statusText.style.transition = 'transform 0.2s, box-shadow 0.2s';
 
-        // Set status text content with both type and status
-        const typeText = t(`common.cat.type.${type.toLowerCase()}`);
-        const statusText = t(`report.status.${status.toLowerCase()}`);
+        // Set status text content with enhanced styling
+        const typeText = t('common.cat.type.' + type.toLowerCase());
+        const statusText = t('report.status.' + status.toLowerCase());
         
-        // Create HTML content with different colors
+        // Create HTML content with enhanced styling
         this.statusText.innerHTML = `
-          <div style="color: white;">#${reportId} - ${typeText}</div>
-          <div style="color: ${getStatusColor(status)};">${statusText}</div>
+          <div style="
+            color: #1a1a1a;
+            margin-bottom: 2px;
+            font-size: 11px;
+            opacity: 0.8;
+          ">#${reportId} - ${typeText}</div>
+          <div style="
+            color: ${getStatusColor(status)};
+            font-size: 12px;
+            font-weight: 600;
+          ">${statusText}</div>
         `;
+
+        // Add hover effect
+        this.statusText.addEventListener('mouseover', () => {
+          this.statusText.style.transform = 'scale(1.05)';
+          this.statusText.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+        });
+
+        this.statusText.addEventListener('mouseout', () => {
+          this.statusText.style.transform = 'scale(1)';
+          this.statusText.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        });
+
+        // Add click handler to status text
+        this.statusText.addEventListener('click', () => {
+          if (this.clickCallback) {
+            this.clickCallback();
+          }
+        });
 
         this.setMap(map);
       }
@@ -360,7 +409,7 @@ export const MapView = () => {
         const panes = this.getPanes();
         if (panes && panes.overlayLayer) {
           panes.overlayLayer.appendChild(this.statusText);
-          (panes.overlayLayer as HTMLElement).style.zIndex = '1';
+          (panes.overlayLayer as HTMLElement).style.zIndex = '1000';
         }
       }
 
@@ -383,12 +432,121 @@ export const MapView = () => {
       }
 
       addClickListener(callback: () => void) {
+        this.clickCallback = callback;
         this.marker.addListener('click', callback);
       }
     }
 
     return new CustomMarker();
   };
+
+  // Show info window when page loads with reportId
+  useEffect(() => {
+    if (reportId && mapRef && reports.length > 0 && !infoWindowRef.current) {
+      const targetReport = reports.find(r => r.id === reportId);
+      if (targetReport) {
+        // Small delay to ensure map and markers are ready
+        setTimeout(() => {
+          const infoWindow = new google.maps.InfoWindow({
+            content: `
+              <div style="
+                min-width: 250px;
+                padding: 16px;
+                font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+              ">
+                <div style="
+                  display: flex;
+                  flex-direction: column;
+                  gap: 12px;
+                ">
+                  <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    border-bottom: 2px solid #e5e7eb;
+                    padding-bottom: 8px;
+                  ">
+                    <div style="
+                      background-color: ${getMarkerColor(targetReport.type)};
+                      width: 12px;
+                      height: 12px;
+                      border-radius: 50%;
+                    "></div>
+                    <h3 style="
+                      margin: 0;
+                      font-size: 18px;
+                      font-weight: 600;
+                      color: #1f2937;
+                    ">${t('map.report')} #${targetReport.id}</h3>
+                  </div>
+
+                  <div style="
+                    display: grid;
+                    grid-template-columns: auto 1fr;
+                    gap: 8px 16px;
+                    font-size: 14px;
+                  ">
+                    <div style="color: #6b7280;">${t('map.status')}:</div>
+                    <div style="color: #1f2937; font-weight: 500;">${t('report.status.' + targetReport.status.toLowerCase())}</div>
+                    
+                    <div style="color: #6b7280;">${t('map.type')}:</div>
+                    <div style="color: #1f2937; font-weight: 500;">${t('common.cat.type.' + targetReport.type.toLowerCase())}</div>
+                    
+                    <div style="color: #6b7280;">${t('map.numberOfCats')}:</div>
+                    <div style="color: #1f2937; font-weight: 500;">${targetReport.numberOfCats} ${t('map.cats')}</div>
+                    
+                    ${targetReport.description ? `
+                      <div style="color: #6b7280;">${t('map.description')}:</div>
+                      <div style="color: #1f2937; font-weight: 500;">${targetReport.description}</div>
+                    ` : ''}
+                  </div>
+
+                  <button
+                    id="updateStatusBtn"
+                    style="
+                      background-color: #3b82f6;
+                      color: white;
+                      border: none;
+                      border-radius: 6px;
+                      padding: 8px 16px;
+                      font-size: 14px;
+                      font-weight: 500;
+                      cursor: pointer;
+                      transition: background-color 0.2s;
+                      margin-top: 8px;
+                      width: 100%;
+                    "
+                    onmouseover="this.style.backgroundColor='#2563eb'"
+                    onmouseout="this.style.backgroundColor='#3b82f6'"
+                  >
+                    ${t('map.updateStatus')}
+                  </button>
+                </div>
+              </div>
+            `,
+            pixelOffset: new google.maps.Size(0, -10),
+          });
+
+          const marker = markersRef.current.find(m => m.reportId === targetReport.id);
+          if (marker && marker.marker) {
+            infoWindow.open(mapRef, marker.marker);
+            infoWindowRef.current = infoWindow;
+            setSelectedReport(targetReport);
+
+            // Add click listener to the button after the info window is opened
+            google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
+              const button = document.getElementById('updateStatusBtn');
+              if (button) {
+                button.addEventListener('click', () => {
+                  setStatusModalOpen(true);
+                });
+              }
+            });
+          }
+        }, 100);
+      }
+    }
+  }, [reportId, mapRef, reports, t]);
 
   // Update markers when map or filtered reports change
   useEffect(() => {
@@ -412,7 +570,17 @@ export const MapView = () => {
         mapRef
       );
 
-      marker.addClickListener(() => handleMarkerClick(report));
+      // Only apply drop animation to the marker matching reportId
+      if (reportId && report.id === reportId) {
+        marker.marker.setAnimation(google.maps.Animation.DROP);
+        marker.marker.setZIndex(1000); // Set high z-index for selected marker
+      } else {
+        marker.marker.setAnimation(null);
+        marker.marker.setZIndex(1); // Set normal z-index for other markers
+      }
+
+      // Add click listener to the marker
+      marker.marker.addListener('click', () => handleMarkerClick(report));
       return marker;
     });
 
@@ -576,6 +744,45 @@ export const MapView = () => {
     };
   };
 
+  const handleLegendClick = (type: CatType) => {
+    // If the clicked type is already selected, clear the filter
+    if (typeFilter === type) {
+      setTypeFilter('all');
+    } else {
+      setTypeFilter(type);
+    }
+    setSelectedReport(null);
+  };
+
+  // Calculate filtered reports count within Bangkok
+  const getFilteredReportsCount = useCallback(() => {
+    return reports.filter(report => {
+      const typeMatch = typeFilter === 'all' || report.type === typeFilter;
+      const statusMatch = statusFilter === 'all' || report.status === statusFilter;
+      const locationMatch = isWithinBangkokArea(report.location.lat, report.location.long);
+      return typeMatch && statusMatch && locationMatch;
+    }).length;
+  }, [reports, typeFilter, statusFilter]);
+
+  // Add click outside handler to close info window
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (infoWindowRef.current) {
+        const infoWindowElement = document.querySelector('.gm-style-iw');
+        if (infoWindowElement && !infoWindowElement.contains(event.target as Node)) {
+          infoWindowRef.current.close();
+          infoWindowRef.current = null;
+          setSelectedReport(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   if (loading || !isLoaded) {
     return (
       <div className="h-[calc(100vh-64px)] w-full flex items-center justify-center">
@@ -625,7 +832,7 @@ export const MapView = () => {
         </div>
       </div>
 
-      <div className="flex-1 w-full">
+      <div className="flex-1 w-full relative">
         <GoogleMap
           mapContainerStyle={containerStyle}
           center={defaultCenter}
@@ -643,6 +850,85 @@ export const MapView = () => {
             ]
           }}
         />
+
+        {/* No Matches Message */}
+        {getFilteredReportsCount() === 0 && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg text-center">
+            <div className="text-gray-500 mb-2">
+              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="text-lg font-medium text-gray-700 mb-1">{t('map.no_matches')}</div>
+            <div className="text-sm text-gray-500">
+              {typeFilter !== 'all' && statusFilter !== 'all' 
+                ? t('map.no_matches.both_filters')
+                : typeFilter !== 'all'
+                ? t('map.no_matches.type_filter')
+                : statusFilter !== 'all'
+                ? t('map.no_matches.status_filter')
+                : t('map.no_matches.no_reports')}
+            </div>
+          </div>
+        )}
+
+        {/* Legend */}
+        <div className="absolute bottom-[104px] right-4 bg-white rounded-lg shadow-lg overflow-hidden">
+          <div 
+            className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50"
+            onClick={() => setIsLegendCollapsed(!isLegendCollapsed)}
+          >
+            <div className="text-sm font-medium text-gray-700">{t('map.legend')}</div>
+            <button 
+              className="text-gray-500 hover:text-gray-700 focus:outline-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsLegendCollapsed(!isLegendCollapsed);
+              }}
+            >
+              <svg 
+                className={`w-4 h-4 transform transition-transform ${isLegendCollapsed ? 'rotate-180' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div className={`transition-all duration-300 ease-in-out ${isLegendCollapsed ? 'h-0' : 'h-auto'}`}>
+            <div className="p-3 pt-0 space-y-2">
+              <div 
+                className={`flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-gray-50 ${typeFilter === CatType.STRAY ? 'bg-gray-100' : ''}`}
+                onClick={() => handleLegendClick(CatType.STRAY)}
+              >
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: getMarkerColor(CatType.STRAY) }}></div>
+                <span className="text-sm text-gray-600">{t('common.cat.type.stray')}</span>
+              </div>
+              <div 
+                className={`flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-gray-50 ${typeFilter === CatType.INJURED ? 'bg-gray-100' : ''}`}
+                onClick={() => handleLegendClick(CatType.INJURED)}
+              >
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: getMarkerColor(CatType.INJURED) }}></div>
+                <span className="text-sm text-gray-600">{t('common.cat.type.injured')}</span>
+              </div>
+              <div 
+                className={`flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-gray-50 ${typeFilter === CatType.SICK ? 'bg-gray-100' : ''}`}
+                onClick={() => handleLegendClick(CatType.SICK)}
+              >
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: getMarkerColor(CatType.SICK) }}></div>
+                <span className="text-sm text-gray-600">{t('common.cat.type.sick')}</span>
+              </div>
+              <div 
+                className={`flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-gray-50 ${typeFilter === CatType.KITTEN ? 'bg-gray-100' : ''}`}
+                onClick={() => handleLegendClick(CatType.KITTEN)}
+              >
+                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: getMarkerColor(CatType.KITTEN) }}></div>
+                <span className="text-sm text-gray-600">{t('common.cat.type.kitten')}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <StatusUpdateModal

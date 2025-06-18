@@ -117,6 +117,36 @@ const isBoundsSmallerThanMinArea = (bounds: google.maps.LatLngBounds): boolean =
   return area < MIN_ZOOM_AREA;
 };
 
+// Add custom styles for info window
+const infoWindowStyles = `
+  .gm-style-iw {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+  .gm-style-iw-d {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+  .gm-style-iw-c {
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+  }
+  .gm-style-iw-ch {
+    display: none !important;
+  }
+  .gm-style-iw-chr {
+    position: absolute !important;
+    right: 0 !important;
+  }
+  .gm-style-iw-t::after {
+    display: none !important;
+  }
+`;
+
 export const MapView = () => {
   const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -127,12 +157,12 @@ export const MapView = () => {
   const initialTypeFilter = searchParams.get('type') as CatType || 'all';
   const initialStatusFilter = searchParams.get('status') as ReportStatus || 'all';
   const isSamePage = searchParams.get('samePage') === 'true';
-  const showModal = searchParams.get('modal') === 'true';
   
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-  const [statusModalOpen, setStatusModalOpen] = useState(showModal);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showInfoWindow, setShowInfoWindow] = useState(false);
   const [newStatus, setNewStatus] = useState<ReportStatus>(ReportStatus.PENDING);
   const [remark, setRemark] = useState('');
   const [typeFilter, setTypeFilter] = useState<CatType | 'all'>(initialTypeFilter);
@@ -154,7 +184,7 @@ export const MapView = () => {
     reportsRef.current = reports;
   }, [reports]);
 
-  // Update URL when filters or modal state changes
+  // Update URL when filters change
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     
@@ -182,124 +212,18 @@ export const MapView = () => {
       params.delete('samePage');
     }
     
-    if (statusModalOpen) {
-      params.set('modal', 'true');
-    } else {
-      params.delete('modal');
-    }
-    
     setSearchParams(params);
-  }, [reportId, typeFilter, statusFilter, isSamePage, statusModalOpen, setSearchParams, searchParams]);
+  }, [reportId, typeFilter, statusFilter, isSamePage, setSearchParams, searchParams]);
 
   const handleMarkerClick = useCallback((report: Report) => {
+    console.log('Marker clicked:', { reportId: report.id, report, showInfoWindow });
     setSearchParams({ 
       reportId: report.id.toString(),
       samePage: 'true'
     });
-    
-    if (infoWindowRef.current) {
-      infoWindowRef.current.close();
-    }
-
-    // Create and open info window immediately
-    const infoWindow = new google.maps.InfoWindow({
-      content: `
-        <div style="
-          min-width: 250px;
-          padding: 16px;
-          font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-        ">
-          <div style="
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-          ">
-            <div style="
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              border-bottom: 2px solid #e5e7eb;
-              padding-bottom: 8px;
-            ">
-              <div style="
-                background-color: ${getMarkerColor(report.type)};
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-              "></div>
-              <h3 style="
-                margin: 0;
-                font-size: 18px;
-                font-weight: 600;
-                color: #1f2937;
-              ">${t('map.report')} #${report.id}</h3>
-            </div>
-
-            <div style="
-              display: grid;
-              grid-template-columns: auto 1fr;
-              gap: 8px 16px;
-              font-size: 14px;
-            ">
-              <div style="color: #6b7280;">${t('map.status')}:</div>
-              <div style="color: #1f2937; font-weight: 500;">${t(`report.status.${report.status.toLowerCase()}`)}</div>
-              
-              <div style="color: #6b7280;">${t('map.type')}:</div>
-              <div style="color: #1f2937; font-weight: 500;">${t(`common.cat.type.${report.type.toLowerCase()}`)}</div>
-              
-              <div style="color: #6b7280;">${t('map.numberOfCats')}:</div>
-              <div style="color: #1f2937; font-weight: 500;">${report.numberOfCats} ${t('map.cats')}</div>
-              
-              ${report.description ? `
-                <div style="color: #6b7280;">${t('map.description')}:</div>
-                <div style="color: #1f2937; font-weight: 500;">${report.description}</div>
-              ` : ''}
-            </div>
-
-            <button
-              id="updateStatusBtn"
-              style="
-                background-color: #3b82f6;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 16px;
-                font-size: 14px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: background-color 0.2s;
-                margin-top: 8px;
-                width: 100%;
-              "
-              onmouseover="this.style.backgroundColor='#2563eb'"
-              onmouseout="this.style.backgroundColor='#3b82f6'"
-            >
-              ${t('map.updateStatus')}
-            </button>
-          </div>
-        </div>
-      `,
-      pixelOffset: new google.maps.Size(0, -10),
-    });
-
-    // Find the marker by report ID and open the info window
-    const marker = markersRef.current.find(m => m.reportId === report.id);
-    if (marker && marker.marker) {
-      infoWindow.open(mapRef, marker.marker);
-      infoWindowRef.current = infoWindow;
-      setSelectedReport(report);
-
-      // Add click listener to the button after the info window is opened
-      google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
-        const button = document.getElementById('updateStatusBtn');
-        if (button) {
-          button.addEventListener('click', () => {
-            setStatusModalOpen(true);
-          });
-        }
-      });
-    }
-  }, [mapRef, setSearchParams, t]);
+    setSelectedReport(report);
+    setShowInfoWindow(true);
+  }, [setSearchParams]);
 
   // Custom marker class that extends OverlayView
   const createCustomMarker = (
@@ -440,117 +364,20 @@ export const MapView = () => {
     return new CustomMarker();
   };
 
-  // Show info window when page loads with reportId
-  useEffect(() => {
-    if (reportId && mapRef && reports.length > 0 && !infoWindowRef.current) {
-      const targetReport = reports.find(r => r.id === reportId);
-      if (targetReport) {
-        // Small delay to ensure map and markers are ready
-        setTimeout(() => {
-          const infoWindow = new google.maps.InfoWindow({
-            content: `
-              <div style="
-                min-width: 250px;
-                padding: 16px;
-                font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-              ">
-                <div style="
-                  display: flex;
-                  flex-direction: column;
-                  gap: 12px;
-                ">
-                  <div style="
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    border-bottom: 2px solid #e5e7eb;
-                    padding-bottom: 8px;
-                  ">
-                    <div style="
-                      background-color: ${getMarkerColor(targetReport.type)};
-                      width: 12px;
-                      height: 12px;
-                      border-radius: 50%;
-                    "></div>
-                    <h3 style="
-                      margin: 0;
-                      font-size: 18px;
-                      font-weight: 600;
-                      color: #1f2937;
-                    ">${t('map.report')} #${targetReport.id}</h3>
-                  </div>
-
-                  <div style="
-                    display: grid;
-                    grid-template-columns: auto 1fr;
-                    gap: 8px 16px;
-                    font-size: 14px;
-                  ">
-                    <div style="color: #6b7280;">${t('map.status')}:</div>
-                    <div style="color: #1f2937; font-weight: 500;">${t('report.status.' + targetReport.status.toLowerCase())}</div>
-                    
-                    <div style="color: #6b7280;">${t('map.type')}:</div>
-                    <div style="color: #1f2937; font-weight: 500;">${t('common.cat.type.' + targetReport.type.toLowerCase())}</div>
-                    
-                    <div style="color: #6b7280;">${t('map.numberOfCats')}:</div>
-                    <div style="color: #1f2937; font-weight: 500;">${targetReport.numberOfCats} ${t('map.cats')}</div>
-                    
-                    ${targetReport.description ? `
-                      <div style="color: #6b7280;">${t('map.description')}:</div>
-                      <div style="color: #1f2937; font-weight: 500;">${targetReport.description}</div>
-                    ` : ''}
-                  </div>
-
-                  <button
-                    id="updateStatusBtn"
-                    style="
-                      background-color: #3b82f6;
-                      color: white;
-                      border: none;
-                      border-radius: 6px;
-                      padding: 8px 16px;
-                      font-size: 14px;
-                      font-weight: 500;
-                      cursor: pointer;
-                      transition: background-color 0.2s;
-                      margin-top: 8px;
-                      width: 100%;
-                    "
-                    onmouseover="this.style.backgroundColor='#2563eb'"
-                    onmouseout="this.style.backgroundColor='#3b82f6'"
-                  >
-                    ${t('map.updateStatus')}
-                  </button>
-                </div>
-              </div>
-            `,
-            pixelOffset: new google.maps.Size(0, -10),
-          });
-
-          const marker = markersRef.current.find(m => m.reportId === targetReport.id);
-          if (marker && marker.marker) {
-            infoWindow.open(mapRef, marker.marker);
-            infoWindowRef.current = infoWindow;
-            setSelectedReport(targetReport);
-
-            // Add click listener to the button after the info window is opened
-            google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
-              const button = document.getElementById('updateStatusBtn');
-              if (button) {
-                button.addEventListener('click', () => {
-                  setStatusModalOpen(true);
-                });
-              }
-            });
-          }
-        }, 100);
-      }
-    }
-  }, [reportId, mapRef, reports, t]);
-
   // Update markers when map or filtered reports change
   useEffect(() => {
-    if (!mapRef || !isLoaded) return;
+    if (!mapRef || !isLoaded) {
+      console.log('Map not ready:', { hasMap: !!mapRef, isLoaded });
+      return;
+    }
+
+    console.log('Updating markers:', { 
+      reportCount: reports.length,
+      typeFilter,
+      statusFilter,
+      reportId,
+      showInfoWindow
+    });
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.onRemove());
@@ -572,6 +399,7 @@ export const MapView = () => {
 
       // Only apply drop animation to the marker matching reportId
       if (reportId && report.id === reportId) {
+        console.log('Setting drop animation for report:', report.id);
         marker.marker.setAnimation(google.maps.Animation.DROP);
         marker.marker.setZIndex(1000); // Set high z-index for selected marker
       } else {
@@ -580,31 +408,205 @@ export const MapView = () => {
       }
 
       // Add click listener to the marker
-      marker.marker.addListener('click', () => handleMarkerClick(report));
+      marker.marker.addListener('click', () => {
+        console.log('Marker click event triggered:', report.id);
+        handleMarkerClick(report);
+      });
       return marker;
+    });
+
+    console.log('Created markers:', { 
+      total: newMarkers.length,
+      withReportId: newMarkers.filter(m => m.reportId === reportId).length
     });
 
     markersRef.current = newMarkers;
 
-    // If there's a specific report to focus on
-    if (reportId) {
+    // Handle info window display
+    if (showInfoWindow && selectedReport) {
+      if (infoWindowRef.current) {
+        infoWindowRef.current.close();
+      }
+
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div style="
+            min-width: 250px;
+            padding: 16px;
+            font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+          ">
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              border-bottom: 2px solid #e5e7eb;
+              padding-bottom: 8px;
+            ">
+              <div style="
+                background-color: ${getMarkerColor(selectedReport.type)};
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+              "></div>
+              <h3 style="
+                margin: 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: #1f2937;
+              ">${t('map.report')} #${selectedReport.id}</h3>
+            </div>
+
+            <div style="
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+            ">
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              ">
+                <div style="
+                  color: #6b7280;
+                  min-width: 80px;
+                ">${t('map.status')}:</div>
+                <div style="
+                  color: #1f2937;
+                  font-weight: 500;
+                  flex: 1;
+                ">${t(`report.status.${selectedReport.status.toLowerCase()}`)}</div>
+              </div>
+              
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              ">
+                <div style="
+                  color: #6b7280;
+                  min-width: 80px;
+                ">${t('map.type')}:</div>
+                <div style="
+                  color: #1f2937;
+                  font-weight: 500;
+                  flex: 1;
+                ">${t(`common.cat.type.${selectedReport.type.toLowerCase()}`)}</div>
+              </div>
+              
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              ">
+                <div style="
+                  color: #6b7280;
+                  min-width: 80px;
+                ">${t('map.numberOfCats')}:</div>
+                <div style="
+                  color: #1f2937;
+                  font-weight: 500;
+                  flex: 1;
+                ">${selectedReport.numberOfCats} ${t('map.cats')}</div>
+              </div>
+              
+              ${selectedReport.description ? `
+                <div style="
+                  display: flex;
+                  flex-direction: column;
+                  gap: 4px;
+                ">
+                  <div style="
+                    color: #6b7280;
+                  ">${t('map.description')}:</div>
+                  <div style="
+                    color: #1f2937;
+                    font-weight: 500;
+                    line-height: 1.4;
+                  ">${selectedReport.description}</div>
+                </div>
+              ` : ''}
+            </div>
+
+            <button
+              id="updateStatusBtn"
+              style="
+                background-color: ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? '#9ca3af' : '#3b82f6'};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? 'not-allowed' : 'pointer'};
+                transition: background-color 0.2s;
+                width: 100%;
+                margin-top: 8px;
+                opacity: ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? '0.6' : '1'};
+              "
+              onmouseover="this.style.backgroundColor='${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? '#9ca3af' : '#2563eb'}'"
+              onmouseout="this.style.backgroundColor='${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? '#9ca3af' : '#3b82f6'}'"
+              ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? 'disabled' : ''}
+            >
+              ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? t('map.statusUpdateDisabled') : t('map.updateStatus')}
+            </button>
+          </div>
+        `,
+        pixelOffset: new google.maps.Size(0, -10)
+      });
+
+      const marker = markersRef.current.find(m => m.reportId === selectedReport.id);
+      if (marker && marker.marker) {
+        // Center map on selected marker
+        const position = new google.maps.LatLng(selectedReport.location.lat, selectedReport.location.long);
+        mapRef.setCenter(position);
+        
+        infoWindow.open(mapRef, marker.marker);
+        infoWindowRef.current = infoWindow;
+
+        // Add event listeners for info window
+        google.maps.event.addListener(infoWindow, 'closeclick', () => {
+          console.log('Info window close button clicked');
+          setSelectedReport(null);
+          setShowInfoWindow(false);
+        });
+
+        google.maps.event.addListener(infoWindow, 'close', () => {
+          console.log('Info window closed');
+          setSelectedReport(null);
+          setShowInfoWindow(false);
+        });
+
+        // Add click listener to the button after the info window is opened
+        google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
+          console.log('Info window DOM ready');
+          const button = document.getElementById('updateStatusBtn');
+          if (button) {
+            console.log('Update status button found');
+            button.addEventListener('click', () => {
+              console.log('Update status button clicked');
+              setIsModalOpen(true);
+            });
+          } else {
+            console.warn('Update status button not found in DOM');
+          }
+        });
+      }
+    }
+
+    // If there's a specific report to focus on and it's not a same-page navigation
+    if (reportId && !isSamePage) {
       const targetReport = reportsRef.current.find(r => r.id === reportId);
       if (targetReport) {
         const position = new google.maps.LatLng(targetReport.location.lat, targetReport.location.long);
         mapRef.setCenter(position);
-        
-        // Only apply min zoom if not navigating within the same page
-        if (!isSamePage) {
-          mapRef.setZoom(calculateZoomForArea(MIN_ZOOM_AREA, targetReport.location.lat));
-        }
-        
-        // Find and click the marker for this report
-        const targetMarker = newMarkers.find(m => m.reportId === reportId);
-        if (targetMarker) {
-          google.maps.event.trigger(targetMarker, 'click');
-        }
+        mapRef.setZoom(calculateZoomForArea(MIN_ZOOM_AREA, targetReport.location.lat));
+        setSelectedReport(targetReport);
+        setShowInfoWindow(true);
       }
-    } else {
+    } else if (!reportId) {
       // Calculate bounds to fit all markers within Bangkok area
       if (newMarkers.length > 0) {
         const bounds = new google.maps.LatLngBounds();
@@ -656,26 +658,36 @@ export const MapView = () => {
         }
       }
     }
-  }, [mapRef, reports, isLoaded, reportId, typeFilter, statusFilter, handleMarkerClick, t]);
+  }, [mapRef, reports, isLoaded, reportId, typeFilter, statusFilter, handleMarkerClick, t, isSamePage, showInfoWindow, selectedReport]);
 
-  // Add event listener for update status button
+  // Add click outside handler to close info window
   useEffect(() => {
-    const handleUpdateStatus = (event: CustomEvent) => {
-      console.log('Update status event received:', event.detail);
-      const reportId = Number(event.detail);
-      const report = reports.find(r => r.id === reportId);
-      console.log('Found report:', report);
-      if (report) {
-        setSelectedReport(report);
-        setStatusModalOpen(true);
-      }
+    const handleClickOutside = (event: MouseEvent) => {
+      // if (infoWindowRef.current && !isModalOpen) {
+      //   // Get the info window container
+      //   const infoWindowElement = document.querySelector('.gm-style-iw-c');
+      //   // Get the info window content
+      //   const infoWindowContent = document.querySelector('.gm-style-iw-d');
+        
+      //   // Check if click is outside both the container and content
+      //   if (infoWindowElement && 
+      //       infoWindowContent && 
+      //       !infoWindowElement.contains(event.target as Node) && 
+      //       !infoWindowContent.contains(event.target as Node)) {
+      //     console.log('Click outside info window detected');
+      //     infoWindowRef.current.close();
+      //     infoWindowRef.current = null;
+      //     setSelectedReport(null);
+      //     setShowInfoWindow(false);
+      //   }
+      // }
     };
 
-    window.addEventListener('updateStatus', handleUpdateStatus as EventListener);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      window.removeEventListener('updateStatus', handleUpdateStatus as EventListener);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [reports]);
+  }, []);
 
   useEffect(() => {
     fetchReports();
@@ -714,34 +726,12 @@ export const MapView = () => {
           break;
       }
       await fetchReports();
-      setStatusModalOpen(false);
+      setIsModalOpen(false);
       setSelectedReport(null);
       setRemark('');
     } catch (error) {
       console.error('Error updating status:', error);
     }
-  };
-
-  // Get marker SVG configuration after Google Maps is loaded
-  const getMarkerSVG = (type: CatType, status: ReportStatus) => {
-    const statusColor = getMarkerColor(type);
-    return {
-      path: "M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM9.5,9c0,-1.38 1.12,-2.5 2.5,-2.5s2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5 -2.5,-1.12 -2.5,-2.5z",
-      fillColor: "#FF0000", // Default red color for marker
-      fillOpacity: 1,
-      strokeWeight: 1,
-      strokeColor: "#000000",
-      scale: 1.5,
-      anchor: new google.maps.Point(12, 24),
-      labelOrigin: new google.maps.Point(12, 8),
-      label: {
-        text: t(`report.status.${status.toLowerCase()}`),
-        color: statusColor,
-        fontSize: "12px",
-        fontWeight: "bold",
-        padding: "2px 4px"
-      }
-    };
   };
 
   const handleLegendClick = (type: CatType) => {
@@ -764,22 +754,13 @@ export const MapView = () => {
     }).length;
   }, [reports, typeFilter, statusFilter]);
 
-  // Add click outside handler to close info window
+  // Add style element for info window
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (infoWindowRef.current) {
-        const infoWindowElement = document.querySelector('.gm-style-iw');
-        if (infoWindowElement && !infoWindowElement.contains(event.target as Node)) {
-          infoWindowRef.current.close();
-          infoWindowRef.current = null;
-          setSelectedReport(null);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
+    const styleElement = document.createElement('style');
+    styleElement.textContent = infoWindowStyles;
+    document.head.appendChild(styleElement);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.head.removeChild(styleElement);
     };
   }, []);
 
@@ -932,9 +913,9 @@ export const MapView = () => {
       </div>
 
       <StatusUpdateModal
-        isOpen={statusModalOpen}
+        isOpen={isModalOpen}
         onClose={() => {
-          setStatusModalOpen(false);
+          setIsModalOpen(false);
           setSelectedReport(null);
         }}
         report={selectedReport}

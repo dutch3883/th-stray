@@ -112,3 +112,4 @@ text_name,english_translation,thai_translation
 "map.no_matches.type_filter","No reports match the selected type in Bangkok area","ไม่พบรายงานที่ตรงกับประเภทที่เลือกในพื้นที่กรุงเทพฯ"
 "map.no_matches.status_filter","No reports match the selected status in Bangkok area","ไม่พบรายงานที่ตรงกับสถานะที่เลือกในพื้นที่กรุงเทพฯ"
 "map.no_matches.no_reports","No reports found in Bangkok area","ไม่พบรายงานในพื้นที่กรุงเทพฯ"
+"map.statusUpdateDisabled","Status Update Disabled","ไม่สามารถอัปเดตสถานะได้"

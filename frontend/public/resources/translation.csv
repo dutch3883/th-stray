@@ -121,3 +121,8 @@ text_name,english_translation,thai_translation
 "modal.status_update.title","Update Report Status","อัปเดตสถานะรายงาน"
 "modal.status_update.remark_placeholder","Add remark...","เพิ่มหมายเหตุ..."
 "modal.status_update.update","Update","อัปเดต"
+"modal.status_update.success","Status updated successfully","อัปเดตสถานะสำเร็จ"
+"modal.status_update.error","Failed to update status. Please try again.","อัปเดตสถานะไม่สำเร็จ โปรดลองอีกครั้ง"
+"modal.status_update.no_transitions","This report cannot be updated","รายงานนี้ไม่สามารถอัปเดตได้"
+"modal.status_update.current_status","Current Status","สถานะปัจจุบัน"
+"toast.close","Close","ปิด"

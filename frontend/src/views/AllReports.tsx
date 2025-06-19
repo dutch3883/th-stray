@@ -187,6 +187,16 @@ export const AllReports = () => {
     setStatusModalOpen(true);
   };
 
+  const updateReportStatusOptimistically = (reportId: number, newStatus: ReportStatus) => {
+    setReports(prevReports => 
+      prevReports.map(report => 
+        report.id === reportId 
+          ? { ...report, status: newStatus }
+          : report
+      )
+    );
+  };
+
   if (loading) {
     return <Spinner />;
   }
@@ -382,7 +392,11 @@ export const AllReports = () => {
           setSelectedReport(null);
         }}
         report={selectedReport}
-        onStatusUpdated={fetchReports}
+        onStatusUpdated={(newStatus) => {
+          if (newStatus && selectedReport) {
+            updateReportStatusOptimistically(selectedReport.id, newStatus);
+          }
+        }}
       />
     </div>
   );

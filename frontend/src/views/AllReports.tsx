@@ -26,45 +26,6 @@ const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: nu
   });
 };
 
-// Helper functions for Thai text
-const getStatusText = (status: ReportStatus, report?: Report): string => {
-  if (status === ReportStatus.CANCELLED && report) {
-    const cancelledStatus = report.statusHistory.find(
-      change => change.to === ReportStatus.CANCELLED
-    );
-    const reason = cancelledStatus?.remark || 'ไม่พบเหตุผลการยกเลิก';
-    return `ยกเลิก: ${reason}`;
-  }
-
-  switch (status) {
-    case ReportStatus.PENDING:
-      return 'กำลังดำเนินการ';
-    case ReportStatus.COMPLETED:
-      return 'เสร็จสิ้น';
-    case ReportStatus.CANCELLED:
-      return 'ยกเลิก';
-    case ReportStatus.ON_HOLD:
-      return 'พักการดำเนินการ';
-    default:
-      return status;
-  }
-};
-
-const getTypeText = (type: CatType): string => {
-  switch (type) {
-    case CatType.STRAY:
-      return "แมวจร";
-    case CatType.INJURED:
-      return "แมวบาดเจ็บ";
-    case CatType.SICK:
-      return "แมวป่วย";
-    case CatType.KITTEN:
-      return "ลูกแมว";
-    default:
-      return type;
-  }
-};
-
 const getStatusStyle = (status: ReportStatus) => {
   switch (status) {
     case ReportStatus.ON_HOLD:
@@ -108,6 +69,46 @@ export const AllReports = () => {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<ReportStatus>(ReportStatus.PENDING);
   const [remark, setRemark] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Helper functions for Thai text - now using translation system
+  const getStatusText = (status: ReportStatus, report?: Report): string => {
+    if (status === ReportStatus.CANCELLED && report) {
+      const cancelledStatus = report.statusHistory.find(
+        change => change.to === ReportStatus.CANCELLED
+      );
+      const reason = cancelledStatus?.remark || t('report.status.cancelled.no_reason');
+      return `${t('report.status.cancelled')}: ${reason}`;
+    }
+
+    switch (status) {
+      case ReportStatus.PENDING:
+        return t('report.status.pending');
+      case ReportStatus.COMPLETED:
+        return t('report.status.completed');
+      case ReportStatus.CANCELLED:
+        return t('report.status.cancelled');
+      case ReportStatus.ON_HOLD:
+        return t('report.status.on_hold');
+      default:
+        return status;
+    }
+  };
+
+  const getTypeText = (type: CatType): string => {
+    switch (type) {
+      case CatType.STRAY:
+        return t('common.cat.type.stray');
+      case CatType.INJURED:
+        return t('common.cat.type.injured');
+      case CatType.SICK:
+        return t('common.cat.type.sick');
+      case CatType.KITTEN:
+        return t('common.cat.type.kitten');
+      default:
+        return type;
+    }
+  };
 
   // Initial load
   useEffect(() => {
@@ -191,10 +192,13 @@ export const AllReports = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-6 flex flex-wrap gap-4">
-        <div className="flex gap-4 justify-around flex-1">
-          <div className="flex flex-col flex-1">
+    <div className="p-4">
+      <h2 className="text-lg font-bold">{t('report.all_reports.title')}</h2>
+      
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex flex-col">
             <label className="text-sm font-medium text-gray-700 mb-1">{t('report.filter.status')}</label>
             <select
               className="p-2 border rounded"
@@ -210,7 +214,7 @@ export const AllReports = () => {
             </select>
           </div>
 
-          <div className="flex flex-col flex-1">
+          <div className="flex flex-col">
             <label className="text-sm font-medium text-gray-700 mb-1">{t('report.filter.type')}</label>
             <select
               className="p-2 border rounded"
@@ -225,10 +229,8 @@ export const AllReports = () => {
               ))}
             </select>
           </div>
-        </div>
 
-        <div className="flex gap-4 justify-around flex-1">
-          <div className="flex flex-col flex-1">
+          <div className="flex flex-col">
             <label className="text-sm font-medium text-gray-700 mb-1">{t('report.sort.by')}</label>
             <select
               className="p-2 border rounded"
@@ -241,7 +243,7 @@ export const AllReports = () => {
             </select>
           </div>
 
-          <div className="flex flex-col flex-1">
+          <div className="flex flex-col">
             <label className="text-sm font-medium text-gray-700 mb-1">{t('report.sort.order')}</label>
             <select
               className="p-2 border rounded"
@@ -255,60 +257,123 @@ export const AllReports = () => {
         </div>
       </div>
 
-      <div className="grid gap-4">
+      {/* Reports List */}
+      <div className="space-y-4">
         {reports.map((report) => (
           <div
             key={report.id}
-            className="bg-white p-4 rounded-lg shadow"
+            className="border p-4 rounded-lg shadow-sm bg-white"
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-bold">{t('report.id')} #{report.id}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span 
-                    className="px-2 py-1 rounded-full text-sm font-medium"
-                    style={getStatusStyle(report.status)}
-                  >
-                    {getStatusText(report.status, report)}
+            <div className="flex gap-4">
+              <div className="flex-1 overflow-scroll">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-bold">{`${t('report.id')} #${report.id}`}</h3>
+                    <span 
+                      className="px-2 py-1 rounded-full text-sm font-medium"
+                      style={getStatusStyle(report.status)}
+                    >
+                      {getStatusText(report.status, report)}
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-500">
+                    {formatDate(report.createdAt)}
                   </span>
                 </div>
-                <p className="mt-2">{t('report.type')}: {getTypeText(report.type)}</p>
-                <p>{t('report.number_of_cats')}: {report.numberOfCats} {t('report.cats')}</p>
-                {report.description && <p>{t('report.description')}: {report.description}</p>}
-                <p>{t('report.contact')}: {report.contactPhone}</p>
-                <p>{t('report.location')}: {report.location.description}</p>
-                <p>{t('report.created_at')}: {formatDate(report.createdAt)}</p>
+                
+                <div className="mt-4 flex flex-col md:flex-row gap-4">
+                  <div className="space-y-2" style={{ flex: 2 }}>
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.type')}:</span> <span className="text-gray-800">{getTypeText(report.type)}</span></p>
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.number_of_cats')}:</span> <span className="text-gray-800">{report.numberOfCats} {t('report.cats')}</span></p>
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.contact')}:</span> <span className="text-gray-800">{report.contactPhone}</span></p>
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.location')}:</span> <span className="text-gray-800">{report.location.description}</span></p>
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.english_communication')}:</span> <span className="text-gray-800">{report.canSpeakEnglish ? t('form.contact.english.yes') : t('form.contact.english.no')}</span></p>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    {report.images.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        {report.images.map((image, index) => (
+                          <img
+                            key={index}
+                            src={image}
+                            alt={`${t('report.id')} ${report.id} - ${t('report.images')} ${index + 1}`}
+                            className="w-full h-auto object-cover rounded max-h-48 md:max-h-48 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setSelectedImage(image)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {report.description && (
+                  <div className="mt-4 p-2 bg-gray-50 rounded">
+                    <div className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded inline-block">{t('report.description')}:</div>
+                    <div className="text-gray-800 mt-2">{report.description}</div>
+                  </div>
+                )}
               </div>
-              <div className="flex flex-col gap-2">
+
+              {/* Action Buttons - Right Side */}
+              <div className="w-1/4 flex flex-col gap-2 items-center justify-center">
                 <button
-                  className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                  className="px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors w-full min-h-16"
                   onClick={() => handleUpdateStatus(report)}
                 >
                   {t('report.update_status')}
                 </button>
                 <button
-                  className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                  className="px-3 py-2 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors w-full min-h-16"
                   onClick={() => handleViewOnMap(report)}
                 >
                   {t('report.view_map')}
                 </button>
+                <button
+                  className="px-3 py-2 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors w-full min-h-16"
+                  onClick={() => {
+                    const url = `https://www.google.com/maps?q=${report.location.lat},${report.location.long}`;
+                    window.open(url, '_blank');
+                  }}
+                >
+                  {t('report.open_google_maps')}
+                </button>
               </div>
             </div>
-            {report.images.length > 0 && (
-              <div className="mt-4 flex gap-2 overflow-x-auto">
-                {report.images.map((image, index) => (
-                  <img
-                    key={index}
-                    src={image}
-                    alt={`${t('report.id')} ${report.id} - ${t('report.images')} ${index + 1}`}
-                    className="h-32 w-32 object-cover rounded"
-                  />
-                ))}
-              </div>
-            )}
           </div>
         ))}
       </div>
+
+      {/* Image Modal */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4 pb-20"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div
+              className="absolute top-4 right-4 text-white hover:text-gray-300 z-10 cursor-pointer"
+              onClick={() => setSelectedImage(null)}
+              style={{ 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="16" fill="rgba(0, 0, 0, 0.5)"/>
+                <line x1="10" y1="10" x2="22" y2="22" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="22" y1="10" x2="10" y2="22" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <img
+              src={selectedImage}
+              alt="Enlarged image"
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
 
       <StatusUpdateModal
         isOpen={statusModalOpen}

@@ -169,7 +169,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
           
           <div className="flex justify-end gap-2">
             <button
-              className="px-4 py-2 bg-gray-200 rounded"
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 active:bg-gray-400 active:scale-95 rounded transition-all duration-150 ease-in-out font-medium"
               onClick={() => {
                 onClose();
               }}
@@ -178,7 +178,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
             </button>
             {!isUpdateDisabled && (
               <button
-                className="px-4 py-2 bg-blue-500 text-white rounded"
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 active:scale-95 text-white rounded transition-all duration-150 ease-in-out font-medium shadow-sm hover:shadow-md"
                 onClick={() => {
                   console.log('Update button clicked');
                   handleStatusChange();

@@ -178,6 +178,7 @@ export const MapView = () => {
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
+    libraries: ['places'],
     language: TH_LANG,
     region: TH_REGION,
   });

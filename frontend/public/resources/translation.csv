@@ -83,6 +83,7 @@ text_name,english_translation,thai_translation
 "report.filter.type","Filter by Type","กรองตามประเภท"
 "report.filter.all_status","All Status","ทุกสถานะ"
 "report.filter.all_type","All Types","ทุกประเภท"
+"report.filter.title","Filters","ตัวกรอง"
 "report.sort.by","Sort by","เรียงตาม"
 "report.sort.order","Order","ลำดับ"
 "report.sort.created_at","Created Date","วันที่สร้าง"

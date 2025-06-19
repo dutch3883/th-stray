@@ -70,6 +70,7 @@ export const AllReports = () => {
   const [newStatus, setNewStatus] = useState<ReportStatus>(ReportStatus.PENDING);
   const [remark, setRemark] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isFilterCollapsed, setIsFilterCollapsed] = useState(true);
 
   // Helper functions for Thai text - now using translation system
   const getStatusText = (status: ReportStatus, report?: Report): string => {
@@ -206,63 +207,82 @@ export const AllReports = () => {
       <h2 className="text-lg font-bold">{t('report.all_reports.title')}</h2>
       
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">{t('report.filter.status')}</label>
-            <select
-              className="p-2 border rounded"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as ReportStatus | 'all')}
-            >
-              <option value="all">{t('report.filter.all_status')}</option>
-              {Object.values(ReportStatus).map((status) => (
-                  <option key={status} value={status}>
-                    {getStatusText(status)}
-                  </option>
-                ))}
-            </select>
-          </div>
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div 
+          className="p-4 cursor-pointer hover:bg-gray-50 flex items-center justify-between"
+          onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
+        >
+          <h3 className="text-lg font-semibold text-gray-700">{t('report.filter.title')}</h3>
+          <svg 
+            className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${isFilterCollapsed ? 'rotate-180' : ''}`} 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+        
+        <div className={`transition-all duration-300 ease-in-out ${isFilterCollapsed ? 'max-h-0 opacity-0' : 'max-h-96 opacity-100'}`}>
+          <div className="p-4 pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-1">{t('report.filter.status')}</label>
+                <select
+                  className="p-2 border rounded"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as ReportStatus | 'all')}
+                >
+                  <option value="all">{t('report.filter.all_status')}</option>
+                  {Object.values(ReportStatus).map((status) => (
+                      <option key={status} value={status}>
+                        {getStatusText(status)}
+                      </option>
+                    ))}
+                </select>
+              </div>
 
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">{t('report.filter.type')}</label>
-            <select
-              className="p-2 border rounded"
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as CatType | 'all')}
-            >
-              <option value="all">{t('report.filter.all_type')}</option>
-              {Object.values(CatType).map((type) => (
-                <option key={type} value={type}>
-                  {getTypeText(type)}
-                </option>
-              ))}
-            </select>
-          </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-1">{t('report.filter.type')}</label>
+                <select
+                  className="p-2 border rounded"
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value as CatType | 'all')}
+                >
+                  <option value="all">{t('report.filter.all_type')}</option>
+                  {Object.values(CatType).map((type) => (
+                    <option key={type} value={type}>
+                      {getTypeText(type)}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">{t('report.sort.by')}</label>
-            <select
-              className="p-2 border rounded"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="createdAt">{t('report.sort.created_at')}</option>
-              <option value="status">{t('report.sort.status')}</option>
-              <option value="type">{t('report.sort.type')}</option>
-            </select>
-          </div>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-1">{t('report.sort.by')}</label>
+                <select
+                  className="p-2 border rounded"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                >
+                  <option value="createdAt">{t('report.sort.created_at')}</option>
+                  <option value="status">{t('report.sort.status')}</option>
+                  <option value="type">{t('report.sort.type')}</option>
+                </select>
+              </div>
 
-          <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">{t('report.sort.order')}</label>
-            <select
-              className="p-2 border rounded"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-            >
-              <option value="desc">{t('report.sort.desc')}</option>
-              <option value="asc">{t('report.sort.asc')}</option>
-            </select>
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-1">{t('report.sort.order')}</label>
+                <select
+                  className="p-2 border rounded"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                >
+                  <option value="desc">{t('report.sort.desc')}</option>
+                  <option value="asc">{t('report.sort.asc')}</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       </div>

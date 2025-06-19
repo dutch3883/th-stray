@@ -533,28 +533,61 @@ export const MapView = () => {
               ` : ''}
             </div>
 
-            <button
-              id="updateStatusBtn"
-              style="
-                background-color: ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? '#9ca3af' : '#3b82f6'};
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 16px;
-                font-size: 14px;
-                font-weight: 500;
-                cursor: ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? 'not-allowed' : 'pointer'};
-                transition: background-color 0.2s;
-                width: 100%;
-                margin-top: 8px;
-                opacity: ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? '0.6' : '1'};
-              "
-              onmouseover="this.style.backgroundColor='${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? '#9ca3af' : '#2563eb'}'"
-              onmouseout="this.style.backgroundColor='${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? '#9ca3af' : '#3b82f6'}'"
-              ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? 'disabled' : ''}
-            >
-              ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? t('map.statusUpdateDisabled') : t('map.updateStatus')}
-            </button>
+            <div style="
+              display: flex;
+              flex-direction: column;
+              gap: 0.5em;
+              margin-top: 8px;
+            ">
+              <button
+                id="updateStatusBtn"
+                style="
+                  background-color: ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? '#9ca3af' : '#3b82f6'};
+                  color: white;
+                  border: none;
+                  border-radius: 6px;
+                  padding: 8px 16px;
+                  font-size: 14px;
+                  font-weight: 500;
+                  cursor: ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? 'not-allowed' : 'pointer'};
+                  transition: background-color 0.2s;
+                  flex: 1;
+                  opacity: ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? '0.6' : '1'};
+                "
+                onmouseover="this.style.backgroundColor='${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? '#9ca3af' : '#2563eb'}'"
+                onmouseout="this.style.backgroundColor='${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? '#9ca3af' : '#3b82f6'}'"
+                ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? 'disabled' : ''}
+              >
+                ${selectedReport.status === ReportStatus.CANCELLED || selectedReport.status === ReportStatus.COMPLETED ? t('map.statusUpdateDisabled') : t('map.updateStatus')}
+              </button>
+              
+              <button
+                id="openGoogleMapsBtn"
+                style="
+                  background-color: #34a853;
+                  color: white;
+                  border: none;
+                  border-radius: 6px;
+                  padding: 8px 16px;
+                  font-size: 14px;
+                  font-weight: 500;
+                  cursor: pointer;
+                  transition: background-color 0.2s;
+                  flex: 1;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 6px;
+                "
+                onmouseover="this.style.backgroundColor='#2d8f47'"
+                onmouseout="this.style.backgroundColor='#34a853'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                ${t('report.open_google_maps')}
+              </button>
+            </div>
           </div>
         `,
         pixelOffset: new google.maps.Size(0, -10)
@@ -594,6 +627,18 @@ export const MapView = () => {
             });
           } else {
             console.warn('Update status button not found in DOM');
+          }
+
+          const googleMapsButton = document.getElementById('openGoogleMapsBtn');
+          if (googleMapsButton) {
+            console.log('Google Maps button found');
+            googleMapsButton.addEventListener('click', () => {
+              console.log('Google Maps button clicked');
+              const url = `https://www.google.com/maps?q=${selectedReport.location.lat},${selectedReport.location.long}`;
+              window.open(url, '_blank');
+            });
+          } else {
+            console.warn('Google Maps button not found in DOM');
           }
         });
       }

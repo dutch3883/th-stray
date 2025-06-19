@@ -268,7 +268,7 @@ export const AllReports = () => {
       </div>
 
       {/* Reports List */}
-      <div className="space-y-4">
+      <div className="space-y-4 mt-6">
         {reports.map((report) => (
           <div
             key={report.id}

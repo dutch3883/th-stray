@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Report, ReportStatus } from '../types/report';
 import { api } from '../services/apiService';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface StatusUpdateModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
   report,
   onStatusUpdated,
 }) => {
+  const { t } = useLanguage();
   const [newStatus, setNewStatus] = useState<ReportStatus>(ReportStatus.PENDING);
   const [remark, setRemark] = useState('');
 
@@ -58,20 +60,20 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         className="bg-white p-6 rounded-lg w-96"
         onClick={e => e.stopPropagation()}
       >
-        <h2 className="text-xl font-bold mb-4">อัปเดตสถานะรายงาน #{report.id}</h2>
+        <h2 className="text-xl font-bold mb-4">{t('modal.status_update.title')} #{report.id}</h2>
         <select
           className="w-full p-2 border rounded mb-4"
           value={newStatus}
           onChange={(e) => setNewStatus(e.target.value as ReportStatus)}
         >
-          <option value={ReportStatus.PENDING}>กำลังดำเนินการ</option>
-          <option value={ReportStatus.ON_HOLD}>รอดำเนินการ</option>
-          <option value={ReportStatus.COMPLETED}>เสร็จสิ้น</option>
-          <option value={ReportStatus.CANCELLED}>ยกเลิก</option>
+          <option value={ReportStatus.PENDING}>{t('report.status.pending')}</option>
+          <option value={ReportStatus.ON_HOLD}>{t('report.status.on_hold')}</option>
+          <option value={ReportStatus.COMPLETED}>{t('report.status.completed')}</option>
+          <option value={ReportStatus.CANCELLED}>{t('report.status.cancelled')}</option>
         </select>
         <textarea
           className="w-full p-2 border rounded mb-4"
-          placeholder="เพิ่มหมายเหตุ..."
+          placeholder={t('modal.status_update.remark_placeholder')}
           value={remark}
           onChange={(e) => setRemark(e.target.value)}
         />
@@ -82,13 +84,13 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
               onClose();
             }}
           >
-            ยกเลิก
+            {t('common.cancel')}
           </button>
           <button
             className="px-4 py-2 bg-blue-500 text-white rounded"
             onClick={handleStatusChange}
           >
-            อัปเดต
+            {t('modal.status_update.update')}
           </button>
         </div>
       </div>

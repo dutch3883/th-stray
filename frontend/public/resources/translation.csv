@@ -118,3 +118,6 @@ text_name,english_translation,thai_translation
 "map.locating","Locating...","กำลังค้นหาตำแหน่ง..."
 "report.open_google_maps","Open in Google Maps","เปิดใน Google Maps"
 "report.english_communication","English Communication","การสื่อสารภาษาอังกฤษ"
+"modal.status_update.title","Update Report Status","อัปเดตสถานะรายงาน"
+"modal.status_update.remark_placeholder","Add remark...","เพิ่มหมายเหตุ..."
+"modal.status_update.update","Update","อัปเดต"

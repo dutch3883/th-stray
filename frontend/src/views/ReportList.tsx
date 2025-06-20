@@ -141,110 +141,116 @@ export default function ReportList({ user }: ReportListProps) {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      <h2 className="text-lg font-bold">{t('report.my_reports.title')}</h2>
-      {reports.map((report) => (
-        <div key={report.id} className="border p-4 rounded-lg shadow-sm bg-white">
-          <div className="flex justify-between items-start">
-            <div className="flex-1 overflow-scroll">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold">{`${t('report.id')} #${report.id}`}</h3>
-                  <span 
-                    className="px-2 py-1 rounded-full text-sm font-medium"
-                    style={getStatusStyle(report.status)}
-                  >
-                    {getStatusText(report.status, report)}
+    <>
+      <div className="p-4 space-y-4">
+        <h2 className="text-lg font-bold">{t('report.my_reports.title')}</h2>
+        {reports.map((report) => (
+          <div key={report.id} className="border p-4 rounded-lg shadow-sm bg-white">
+            <div className="flex justify-between items-start">
+              <div className="flex-1 overflow-scroll">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold">{`${t('report.id')} #${report.id}`}</h3>
+                    <span 
+                      className="px-2 py-1 rounded-full text-sm font-medium"
+                      style={getStatusStyle(report.status)}
+                    >
+                      {getStatusText(report.status, report)}
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-500">
+                    {formatDate(report.createdAt)}
                   </span>
                 </div>
-                <span className="text-sm text-gray-500">
-                  {formatDate(report.createdAt)}
-                </span>
-              </div>
-              
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <p><span className="font-medium">{t('report.type')}:</span> {
-                    report.type === CatType.STRAY ? t('common.cat.type.stray') :
-                    report.type === CatType.INJURED ? t('common.cat.type.injured') :
-                    report.type === CatType.SICK ? t('common.cat.type.sick') :
-                    t('common.cat.type.kitten')
-                  }</p>
-                  <p><span className="font-medium">{t('report.number_of_cats')}:</span> {report.numberOfCats} {t('report.cats')}</p>
-                  <p><span className="font-medium">{t('report.contact_phone')}:</span> {report.contactPhone}</p>
+                
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <p><span className="font-medium">{t('report.type')}:</span> {
+                      report.type === CatType.STRAY ? t('common.cat.type.stray') :
+                      report.type === CatType.INJURED ? t('common.cat.type.injured') :
+                      report.type === CatType.SICK ? t('common.cat.type.sick') :
+                      t('common.cat.type.kitten')
+                    }</p>
+                    <p><span className="font-medium">{t('report.number_of_cats')}:</span> {report.numberOfCats} {t('report.cats')}</p>
+                    <p><span className="font-medium">{t('report.contact_phone')}:</span> {report.contactPhone}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p><span className="font-medium">{t('report.location')}:</span> {report.location.description}</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <p><span className="font-medium">{t('report.location')}:</span> {report.location.description}</p>
-                </div>
-              </div>
 
-              {report.description && (
-                <div className="mt-4 p-2 bg-gray-50 rounded">
-                  <div className="font-medium">{t('report.description')}:</div>
-                  <div>{report.description}</div>
-                </div>
-              )}
+                {report.description && (
+                  <div className="mt-4 p-2 bg-gray-50 rounded">
+                    <div className="font-medium">{t('report.description')}:</div>
+                    <div>{report.description}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {report.status === ReportStatus.PENDING && (
+              <div className="mt-3 flex gap-2">
+                <button 
+                  className="px-3 py-1.5 text-sm bg-yellow-100 text-yellow-700 rounded-md hover:bg-yellow-200"
+                  onClick={() => {
+                    setSelectedReport(report);
+                    setShowEditModal(true);
+                  }}
+                >
+                  {t('report.actions.edit')}
+                </button>
+                <button 
+                  className="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+                  onClick={() => {
+                    setSelectedReport(report);
+                    setCancelModalOpen(true);
+                  }}
+                >
+                  {t('report.actions.cancel')}
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Cancel Modal */}
+        {cancelModalOpen && selectedReport && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            <div className="bg-white rounded-lg p-6 w-full max-w-md m-4">
+              <h3 className="text-lg font-medium mb-4">{t('report.cancel.title')}</h3>
+              <textarea
+                className="w-full p-2 border rounded mb-4"
+                rows={3}
+                placeholder={t('report.cancel.reason_placeholder')}
+                value={cancelRemark}
+                onChange={(e) => setCancelRemark(e.target.value)}
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                  onClick={() => {
+                    setCancelModalOpen(false);
+                    setCancelRemark('');
+                  }}
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  onClick={handleCancel}
+                >
+                  {t('report.cancel.confirm')}
+                </button>
+              </div>
             </div>
           </div>
+        )}
+      </div>
 
-          {report.status === ReportStatus.PENDING && (
-            <div className="mt-3 flex gap-2">
-              <button 
-                className="px-3 py-1.5 text-sm bg-yellow-100 text-yellow-700 rounded-md hover:bg-yellow-200"
-                onClick={() => {
-                  setSelectedReport(report);
-                  setShowEditModal(true);
-                }}
-              >
-                {t('report.actions.edit')}
-              </button>
-              <button 
-                className="px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200"
-                onClick={() => {
-                  setSelectedReport(report);
-                  setCancelModalOpen(true);
-                }}
-              >
-                {t('report.actions.cancel')}
-              </button>
-            </div>
-          )}
-        </div>
-      ))}
-
-      {/* Cancel Modal */}
-      {cancelModalOpen && selectedReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium mb-4">{t('report.cancel.title')}</h3>
-            <textarea
-              className="w-full p-2 border rounded mb-4"
-              rows={3}
-              placeholder={t('report.cancel.reason_placeholder')}
-              value={cancelRemark}
-              onChange={(e) => setCancelRemark(e.target.value)}
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
-                onClick={() => {
-                  setCancelModalOpen(false);
-                  setCancelRemark('');
-                }}
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                onClick={handleCancel}
-              >
-                {t('report.cancel.confirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* EditReportModal - rendered outside the container */}
       {showEditModal && selectedReport && (
         <EditReportModal
           isOpen={showEditModal}
@@ -260,6 +266,6 @@ export default function ReportList({ user }: ReportListProps) {
           }}
         />
       )}
-    </div>
+    </>
   );
 } 

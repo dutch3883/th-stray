@@ -7,25 +7,6 @@ import { theme } from '../theme';
 import { StatusUpdateModal } from '../components/StatusUpdateModal';
 import { useLanguage } from '../contexts/LanguageContext';
 
-// Helper function to format dates
-const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: number } | string): string => {
-  let date: Date;
-  if (typeof dateOrTimestamp === 'string') {
-    date = new Date(dateOrTimestamp);
-  } else if ('_seconds' in dateOrTimestamp) {
-    date = new Date(dateOrTimestamp._seconds * 1000);
-  } else {
-    date = dateOrTimestamp;
-  }
-  return date.toLocaleString('th-TH', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
 const getStatusStyle = (status: ReportStatus) => {
   switch (status) {
     case ReportStatus.ON_HOLD:
@@ -58,7 +39,7 @@ const getStatusStyle = (status: ReportStatus) => {
 
 export const AllReports = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('all');
@@ -71,6 +52,29 @@ export const AllReports = () => {
   const [remark, setRemark] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(true);
+
+  // Helper function to format dates with current language
+  const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: number } | string): string => {
+    let date: Date;
+    if (typeof dateOrTimestamp === 'string') {
+      date = new Date(dateOrTimestamp);
+    } else if ('_seconds' in dateOrTimestamp) {
+      date = new Date(dateOrTimestamp._seconds * 1000);
+    } else {
+      date = dateOrTimestamp;
+    }
+    
+    // Use current language setting for date formatting
+    const locale = language === 'en' ? 'en-US' : 'th-TH';
+    
+    return date.toLocaleString(locale, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   // Helper functions for Thai text - now using translation system
   const getStatusText = (status: ReportStatus, report?: Report): string => {

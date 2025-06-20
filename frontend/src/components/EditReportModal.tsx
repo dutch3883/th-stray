@@ -4,6 +4,7 @@ import { api } from '../services/apiService';
 import { uploadImageAndGetUrl } from '../services/storageService';
 import LocationPicker from '../LocationPicker';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { getThemeColor, getThemeBg, getButtonGradient, getSecondaryButtonGradient } from '../utils/themeUtils';
 
 interface Location {
@@ -27,6 +28,7 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
 }) => {
   console.log('EditReportModal rendered with props:', { isOpen, report });
   const { isRescueMode } = useTheme();
+  const { t } = useLanguage();
   const [formData, setFormData] = useState<{
     numberOfCats: number;
     type: CatType;
@@ -71,7 +73,7 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
       onReportUpdated();
     } catch (error) {
       console.error('Error updating report:', error);
-      alert('Failed to update report. Please try again.');
+      alert(t('modal.edit_report.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -103,7 +105,7 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
         className="bg-white p-6 rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        <h2 className={`text-xl font-bold mb-4 ${getThemeColor(true, isRescueMode)}`}>แก้ไขรายงาน</h2>
+        <h2 className={`text-xl font-bold mb-4 ${getThemeColor(true, isRescueMode)}`}>{t('modal.edit_report.title')}</h2>
 
         {/* Location picker overlay */}
         {showPicker && (
@@ -118,9 +120,9 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
         )}
 
         <div className="space-y-4">
-          {/* จำนวนแมว */}
+          {/* Number of Cats */}
           <div>
-            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>จำนวนแมว</label>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.cat.number')}</label>
             <select
               value={formData.numberOfCats.toString()}
               onChange={(e) => setFormData({ ...formData, numberOfCats: parseInt(e.target.value, 10) })}
@@ -133,30 +135,30 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
             </select>
           </div>
 
-          {/* ประเภท */}
+          {/* Type */}
           <div>
-            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>ประเภท</label>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.cat.type.label')}</label>
             <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value as CatType })}
               className="w-full border rounded p-2"
               disabled={isSubmitting}
             >
-              <option value={CatType.STRAY}>แมวจร</option>
-              <option value={CatType.INJURED}>บาดเจ็บ</option>
-              <option value={CatType.SICK}>ป่วย</option>
-              <option value={CatType.KITTEN}>ลูกแมว</option>
+              <option value={CatType.STRAY}>{t('common.cat.type.stray')}</option>
+              <option value={CatType.INJURED}>{t('common.cat.type.injured')}</option>
+              <option value={CatType.SICK}>{t('common.cat.type.sick')}</option>
+              <option value={CatType.KITTEN}>{t('common.cat.type.kitten')}</option>
             </select>
           </div>
 
-          {/* เบอร์โทร */}
+          {/* Contact Phone */}
           <div>
-            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>เบอร์โทรติดต่อ</label>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.contact.phone')}</label>
             <input
               type="tel"
               pattern="[0-9]*"
               inputMode="numeric"
-              placeholder="0812345678"
+              placeholder={t('form.contact.phone_placeholder')}
               className="w-full border rounded p-2"
               value={formData.contactPhone}
               onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
@@ -164,11 +166,11 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
             />
           </div>
 
-          {/* รายละเอียดเพิ่มเติม */}
+          {/* Additional Details */}
           <div>
-            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>รายละเอียดเพิ่มเติม (ถ้ามี)</label>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.details.label')}</label>
             <textarea
-              placeholder="เช่น ลักษณะเด่นของแมว, สภาพแวดล้อม, ฯลฯ"
+              placeholder={t('form.details.placeholder')}
               className="w-full border rounded p-2"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -177,9 +179,9 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
             />
           </div>
 
-          {/* สามารถสื่อสารภาษาอังกฤษได้หรือไม่ */}
+          {/* English Communication */}
           <div>
-            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>สามารถสื่อสารภาษาอังกฤษได้หรือไม่?</label>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.contact.english.label')}</label>
             <div className="flex gap-4">
               <label className="inline-flex items-center">
                 <input
@@ -190,7 +192,7 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
                   checked={formData.canSpeakEnglish === true}
                   onChange={() => setFormData({ ...formData, canSpeakEnglish: true })}
                 />
-                <span className="ml-2">ได้</span>
+                <span className="ml-2">{t('form.contact.english.yes')}</span>
               </label>
               <label className="inline-flex items-center">
                 <input
@@ -201,14 +203,14 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
                   checked={formData.canSpeakEnglish === false}
                   onChange={() => setFormData({ ...formData, canSpeakEnglish: false })}
                 />
-                <span className="ml-2">ไม่ได้</span>
+                <span className="ml-2">{t('form.contact.english.no')}</span>
               </label>
             </div>
           </div>
 
-          {/* รูปภาพ */}
+          {/* Images */}
           <div>
-            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>รูปภาพ (สูงสุด 3 รูป)</label>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.images.label')}</label>
             <input 
               type="file" 
               accept="image/*" 
@@ -223,7 +225,7 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
                   <img
                     key={idx}
                     src={url}
-                    alt={`cat-${idx}`}
+                    alt={t('form.images.alt_text')}
                     className="w-20 h-20 object-cover rounded"
                   />
                 ))}
@@ -231,21 +233,21 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
             )}
           </div>
 
-          {/* ตำแหน่ง */}
+          {/* Location */}
           <div>
-            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>ตำแหน่ง</label>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.location.label')}</label>
             <button
               type="button"
               onClick={() => setShowPicker(true)}
               disabled={isSubmitting}
               className={`w-full bg-gradient-to-r ${getSecondaryButtonGradient(isRescueMode)} text-white py-2 rounded-lg`}
             >
-              เลือกตำแหน่งบนแผนที่
+              {t('form.location.select')}
             </button>
 
             {location && (
               <p className={`text-sm mt-1 ${getThemeColor(true, isRescueMode, 700)}`}>
-                เลือกแล้ว: {location.description || `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
+                {t('form.location.selected')} {location.description || `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
               </p>
             )}
           </div>
@@ -259,7 +261,7 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
             disabled={isSubmitting}
             className="px-4 py-2 bg-gray-200 rounded"
           >
-            ยกเลิก
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -269,7 +271,7 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
               isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
-            {isSubmitting ? 'กำลังอัปเดต...' : 'บันทึกการแก้ไข'}
+            {isSubmitting ? t('modal.edit_report.updating') : t('modal.edit_report.save')}
           </button>
         </div>
       </div>

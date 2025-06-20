@@ -319,7 +319,15 @@ export const AllReports = () => {
                   <div className="space-y-2" style={{ flex: 2 }}>
                     <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.type')}:</span> <span className="text-gray-800">{getTypeText(report.type)}</span></p>
                     <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.number_of_cats')}:</span> <span className="text-gray-800">{report.numberOfCats} {t('report.cats')}</span></p>
-                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.contact')}:</span> <span className="text-gray-800">{report.contactPhone}</span></p>
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.contact')}:</span> <span className="text-gray-800">
+                      <a 
+                        href={`tel:${report.contactPhone}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                        title={`${t('report.contact')}: ${report.contactPhone}`}
+                      >
+                        {report.contactPhone}
+                      </a>
+                    </span></p>
                     <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.location')}:</span> <span className="text-gray-800">{report.location.description}</span></p>
                     <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.english_communication')}:</span> <span className="text-gray-800">{report.canSpeakEnglish ? t('form.contact.english.yes') : t('form.contact.english.no')}</span></p>
                   </div>

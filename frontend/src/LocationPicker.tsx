@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { useSearchParams } from 'react-router-dom';
+import { useLanguage } from './contexts/LanguageContext';
 
 interface Location {
   lat: number;
@@ -16,7 +17,6 @@ interface LocationPickerProps {
 
 const containerStyle = { width: '100%', height: '60vh' }; // responsive map height
 const fallbackCenter = { lat: 13.7563, lng: 100.5018 };   // Bangkok
-const TH_LANG = 'th';
 const TH_REGION = 'TH';
 
 // Bangkok and connected provinces boundaries
@@ -36,18 +36,20 @@ const isWithinBangkokArea = (lat: number, lng: number): boolean => {
 };
 
 export default function LocationPicker({ initialLocation, onConfirm, onCancel }: LocationPickerProps) {
+  const { t, language } = useLanguage();
   const [searchParams] = useSearchParams();
   const bypassLocation = searchParams.get('bypassLocation') === 'true';
 
+  // Use a fixed language for the loader to prevent conflicts
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
     libraries: ['places'],
-    language: TH_LANG,
+    language: language || 'th', // Use current language with fallback to prevent conflicts
     region: TH_REGION,
   });
 
   const [center, setCenter] = useState<google.maps.LatLngLiteral>(initialLocation ?? fallbackCenter);
-  const [address, setAddress] = useState<string>(initialLocation?.description ?? 'กำลังค้นหาที่อยู่…');
+  const [address, setAddress] = useState<string>(initialLocation?.description ?? t('location.searching_address'));
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
   const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -64,12 +66,12 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
   const refreshAddress = (loc: google.maps.LatLngLiteral): void => {
     if (!geocoder) return;
     geocoder.geocode(
-      { location: loc, language: TH_LANG },
+      { location: loc, language: language }, // Use current language for geocoding
       (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
         if (status === 'OK' && results?.[0]) {
           setAddress(cleanPlusCode(results[0].formatted_address));
         } else {
-          setAddress('ไม่พบชื่อสถานที่');
+          setAddress(t('location.address_not_found'));
         }
       }
     );
@@ -91,7 +93,7 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
       const { latitude, longitude } = position.coords;
       
       if (!bypassLocation && !isWithinBangkokArea(latitude, longitude)) {
-        setLocationError('ตำแหน่งอยู่นอกพื้นที่กรุงเทพฯ และปริมณฑล');
+        setLocationError(t('location.outside_bangkok_area'));
         return;
       }
 
@@ -108,19 +110,19 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
       if (error instanceof GeolocationPositionError) {
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            setLocationError('กรุณาอนุญาตให้เข้าถึงตำแหน่งที่ตั้ง');
+            setLocationError(t('location.error.permission_denied'));
             break;
           case error.POSITION_UNAVAILABLE:
-            setLocationError('ไม่สามารถเข้าถึงตำแหน่งที่ตั้งได้');
+            setLocationError(t('location.error.position_unavailable'));
             break;
           case error.TIMEOUT:
-            setLocationError('หมดเวลาการขอตำแหน่งที่ตั้ง');
+            setLocationError(t('location.error.timeout'));
             break;
           default:
-            setLocationError('เกิดข้อผิดพลาดในการขอตำแหน่งที่ตั้ง');
+            setLocationError(t('location.error.general'));
         }
       } else {
-        setLocationError('เกิดข้อผิดพลาดในการขอตำแหน่งที่ตั้ง');
+        setLocationError(t('location.error.general'));
       }
     } finally {
       setIsRequestingLocation(false);
@@ -138,12 +140,12 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
     if (!geocoder) return;
     const id = setTimeout(() => refreshAddress(center), 300);
     return () => clearTimeout(id);
-  }, [center, geocoder]);
+  }, [center, geocoder, language]);
 
   if (!isLoaded) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white p-4 rounded shadow">กำลังโหลดแผนที่…</div>
+        <div className="bg-white p-4 rounded shadow">{t('location.loading_map')}</div>
       </div>
     );
   }
@@ -157,7 +159,7 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
   
         {/* Header */}
         <div className="px-4">
-          <h2 className="text-lg font-bold text-center pb-2">เลือกตำแหน่งของแมว</h2>
+          <h2 className="text-lg font-bold text-center pb-2">{t('location.title')}</h2>
           <p className="text-sm text-gray-700 line-clamp-2 pb-2">{address}</p>
         </div>
   
@@ -188,7 +190,7 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
               onClick={getCurrentLocation}
               disabled={isRequestingLocation}
               className="bg-white p-3 rounded-full shadow-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              title="ใช้ตำแหน่งปัจจุบัน"
+              title={t('location.use_current_location')}
             >
               {isRequestingLocation ? (
                 <svg className="animate-spin h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -217,7 +219,7 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
                       d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" 
                     />
                   </svg>
-                  <span className="text-sm font-medium text-gray-600">ตำแหน่งปัจจุบัน</span>
+                  <span className="text-sm font-medium text-gray-600">{t('location.current_location')}</span>
                 </>
               )}
             </button>
@@ -239,14 +241,14 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
                 onClick={onCancel} 
                 className="flex-1 px-4 py-3 bg-gray-100 rounded-lg hover:bg-gray-200"
               >
-                ยกเลิก
+                {t('common.cancel')}
               </button>
             )}
             <button
               onClick={() => onConfirm({ ...center, description: address })}
               className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
-              ยืนยัน
+              {t('common.confirm')}
             </button>
           </div>
         </div>

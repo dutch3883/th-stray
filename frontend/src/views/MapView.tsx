@@ -148,7 +148,7 @@ const infoWindowStyles = `
 `;
 
 export const MapView = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   
@@ -179,7 +179,7 @@ export const MapView = () => {
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
     libraries: ['places'],
-    language: TH_LANG,
+    language: language || 'th', // Use current language with fallback to prevent conflicts
     region: TH_REGION,
   });
 

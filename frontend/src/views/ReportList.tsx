@@ -17,7 +17,7 @@ interface ReportListProps {
 }
 
 // Helper function to format dates
-const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: number } | string): string => {
+const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: number } | string, locale: string = 'th-TH'): string => {
   let date: Date;
   
   if (typeof dateOrTimestamp === 'string') {
@@ -28,7 +28,7 @@ const formatDate = (dateOrTimestamp: Date | { _seconds: number; _nanoseconds: nu
     date = dateOrTimestamp;
   }
 
-  return date.toLocaleString('th-TH', {
+  return date.toLocaleString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -63,13 +63,18 @@ const getStatusStyle = (status: ReportStatus) => {
 };
 
 export default function ReportList({ user }: ReportListProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelRemark, setCancelRemark] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
+
+  // Get locale for date formatting
+  const getLocale = () => {
+    return language === 'en' ? 'en-US' : 'th-TH';
+  };
 
   const getStatusText = (status: ReportStatus, report?: Report): string => {
     if (status === ReportStatus.CANCELLED && report) {
@@ -159,7 +164,7 @@ export default function ReportList({ user }: ReportListProps) {
                     </span>
                   </div>
                   <span className="text-sm text-gray-500">
-                    {formatDate(report.createdAt)}
+                    {formatDate(report.createdAt, getLocale())}
                   </span>
                 </div>
                 

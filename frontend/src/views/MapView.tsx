@@ -121,6 +121,20 @@ export const MapView = () => {
   const [currentLocation, setCurrentLocation] = useState<google.maps.LatLng | null>(null);
   const [currentLocationMarker, setCurrentLocationMarker] = useState<google.maps.Marker | null>(null);
   const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [myLocationSelected, setMyLocationSelected] = useState<google.maps.LatLng | null>(null);
+  
+  // Track previous marker dependency values for comparison
+  const prevMarkerDepsRef = useRef<{
+    hasMap: boolean;
+    isLoaded: boolean;
+    reportsCount: number;
+    typeFilter: CatType | 'all';
+    statusFilter: ReportStatus | 'all';
+    reportId: number | null;
+    showInfoWindow: boolean;
+    currentLocation: boolean;
+    language: string;
+  } | null>(null);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
@@ -152,6 +166,7 @@ export const MapView = () => {
     });
     setSelectedReport(report);
     setShowInfoWindow(true);
+    setMyLocationSelected(null);
   }, [setSearchParams, searchParams]);
 
   // Custom marker class that extends OverlayView
@@ -353,18 +368,43 @@ export const MapView = () => {
 
   // Update markers when map or filtered reports change
   useEffect(() => {
-    if (!mapRef || !isLoaded) {
-      console.log('Map not ready:', { hasMap: !!mapRef, isLoaded });
-      return;
-    }
-
-    console.log('Updating markers:', { 
-      reportCount: reports.length,
+    const currentDeps = {
+      hasMap: !!mapRef,
+      isLoaded,
+      reportsCount: reports.length,
       typeFilter,
       statusFilter,
-      reportId,
-      showInfoWindow
-    });
+      reportId: reportId || null,
+      showInfoWindow,
+      currentLocation: !!currentLocation,
+      language
+    };
+
+    // Show what changed to trigger re-render
+    if (prevMarkerDepsRef.current) {
+      const prev = prevMarkerDepsRef.current;
+      const changes: Record<string, { from: any; to: any }> = {};
+      
+      Object.entries(currentDeps).forEach(([key, value]) => {
+        if (prev[key as keyof typeof prev] !== value) {
+          changes[key] = {
+            from: prev[key as keyof typeof prev],
+            to: value
+          };
+        }
+      });
+
+      if (Object.keys(changes).length > 0) {
+        console.log('🔍 Marker re-render:', changes);
+      }
+    }
+
+    // Store current values for next comparison
+    prevMarkerDepsRef.current = currentDeps;
+
+    if (!mapRef || !isLoaded) {
+      return;
+    }
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.onRemove());
@@ -384,15 +424,15 @@ export const MapView = () => {
         mapRef
       );
 
-      // Only apply drop animation to the marker matching reportId
-      if (reportId && report.id === reportId) {
-        console.log('Setting drop animation for report:', report.id);
-        marker.marker.setAnimation(google.maps.Animation.DROP);
-        marker.marker.setZIndex(1000); // Set high z-index for selected marker
-      } else {
-        marker.marker.setAnimation(null);
-        marker.marker.setZIndex(1); // Set normal z-index for other markers
-      }
+      // // Only apply drop animation to the marker matching reportId
+      // if (reportId && report.id === reportId) {
+      //   console.log('Setting drop animation for report:', report.id);
+      //   marker.marker.setAnimation(google.maps.Animation.BOUNCE);
+      //   marker.marker.setZIndex(1000); // Set high z-index for selected marker
+      // } else {
+      //   marker.marker.setAnimation(null);
+      //   marker.marker.setZIndex(1); // Set normal z-index for other markers
+      // }
 
       // Add click listener to the marker
       marker.marker.addListener('click', () => {
@@ -400,11 +440,6 @@ export const MapView = () => {
         handleMarkerClick(report);
       });
       return marker;
-    });
-
-    console.log('Created markers:', { 
-      total: newMarkers.length,
-      withReportId: newMarkers.filter(m => m.reportId === reportId).length
     });
 
     markersRef.current = newMarkers;
@@ -647,6 +682,10 @@ export const MapView = () => {
           setShowInfoWindow(true);
         }
       }
+    } else if (myLocationSelected) {
+      // Priority: User explicitly selected their location
+      mapRef.setCenter(myLocationSelected);
+      mapRef.setZoom(15);
     } else {
       // Calculate bounds to fit all markers within Bangkok area
       if (newMarkers.length > 0) {
@@ -684,7 +723,6 @@ export const MapView = () => {
 
           // Check if bounds are smaller than minimum area and current zoom is larger than minimum
           const currentZoom = mapRef.getZoom() || 0;
-          console.log(`minzoom area = ${MIN_ZOOM_AREA}`, currentZoom);
           const minZoom = calculateZoomForArea(MIN_ZOOM_AREA, centerLat);
           
           if (isBoundsSmallerThanMinArea(bounds) && currentZoom > minZoom) {
@@ -700,7 +738,7 @@ export const MapView = () => {
         }
       }
     }
-  }, [mapRef, reports, isLoaded, reportId, typeFilter, statusFilter, handleMarkerClick, t, isSamePage, showInfoWindow, selectedReport, currentLocation, language]);
+  }, [mapRef, reports, isLoaded, reportId, typeFilter, statusFilter, handleMarkerClick, t, isSamePage, showInfoWindow, selectedReport, currentLocation, myLocationSelected, language]);
 
   // Update travel times when current location changes
   useEffect(() => {
@@ -773,11 +811,16 @@ export const MapView = () => {
     
     // Clear reportId and selected report when legend is clicked
     clearReportId();
+    setMyLocationSelected(null);
   };
 
   // Get current location and center map
   const getCurrentLocation = () => {
+    console.log('Current location button clicked');
     if (!mapRef) return;
+    
+    // Clear reportId when getting current location
+    clearReportId();
     
     setIsLocationLoading(true);
     
@@ -788,6 +831,7 @@ export const MapView = () => {
           const location = new google.maps.LatLng(latitude, longitude);
           
           setCurrentLocation(location);
+          setMyLocationSelected(location);
           
           // Remove existing current location marker
           if (currentLocationMarker) {
@@ -885,10 +929,12 @@ export const MapView = () => {
         onTypeFilterChange={(type) => {
           setTypeFilter(type);
           clearReportId();
+          setMyLocationSelected(null);
         }}
         onStatusFilterChange={(status) => {
           setStatusFilter(status);
           clearReportId();
+          setMyLocationSelected(null);
         }}
       />
 

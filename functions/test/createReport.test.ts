@@ -1,5 +1,5 @@
-import { createTestUser, getAuthToken, deleteAllUsers } from './auth';
-import { describe, it, beforeAll, afterAll, expect, jest } from '@jest/globals';
+import { createTestUser, getAuthToken } from './auth';
+import { describe, it, beforeAll, expect, jest } from '@jest/globals';
 import { AuthResponse } from './auth';
 import { CatType } from '../src/domain/Report';
 
@@ -31,10 +31,6 @@ describe('Create Report Function', () => {
     await createTestUser(testEmail, testPassword);
     const auth: AuthResponse = await getAuthToken(testEmail, testPassword);
     authToken = auth.idToken;
-  });
-
-  afterAll(async () => {
-    await deleteAllUsers();
   });
 
   it('should successfully create a report when authenticated', async () => {

@@ -449,8 +449,8 @@ export const listReports = functions.https.onCall(async (req) => {
       reports.sort((a, b) => {
         const aValue = a[dto.sortBy as keyof typeof a];
         const bValue = b[dto.sortBy as keyof typeof b];
-        
-        if (dto.sortOrder === 'asc') {
+
+        if (dto.sortOrder === "asc") {
           return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
         } else {
           return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;

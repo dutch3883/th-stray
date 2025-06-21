@@ -1,5 +1,5 @@
-import { createTestUser, getAuthToken, deleteAllUsers, setUserRole } from './auth';
-import { describe, it, beforeAll, afterAll, expect, jest } from '@jest/globals';
+import { createTestUser, getAuthToken, setUserRole } from './auth';
+import { describe, it, beforeAll, expect, jest } from '@jest/globals';
 import { AuthResponse } from './auth';
 import { CatType, ReportStatus } from '../src/domain/Report';
 
@@ -105,7 +105,9 @@ describe('List Reports Function', () => {
 
     if (existingResponse.status === 200) {
       const data = await existingResponse.json() as ListReportsResponse;
-      existingReports = data.result;
+      if (data && data.result) {
+        existingReports = data.result;
+      }
     }
 
     // Create test reports with different statuses and types
@@ -163,7 +165,16 @@ describe('List Reports Function', () => {
           }),
         }
       );
+      
+      if (response.status !== 200) {
+        throw new Error(`Failed to create test report: ${response.status} ${response.statusText}`);
+      }
+      
       const result = await response.json() as CreateReportResponse;
+      if (!result || !result.result || !result.result.id) {
+        throw new Error('Invalid create report response: missing result or id');
+      }
+      
       testReportIds.push(result.result.id);
     }
 
@@ -173,7 +184,17 @@ describe('List Reports Function', () => {
       sortOrder: 'desc'
     });
 
-    const reports = (await listResponse.json() as ListReportsResponse).result;
+    if (listResponse.status !== 200) {
+      throw new Error(`Failed to list reports: ${listResponse.status} ${listResponse.statusText}`);
+    }
+
+    const responseData = await listResponse.json() as ListReportsResponse;
+    
+    if (!responseData || !responseData.result) {
+      throw new Error('Invalid response structure: missing result property');
+    }
+
+    const reports = responseData.result;
     const newReports = reports.filter(r => testReportIds.includes(r.id));
     
     // Update first report to completed
@@ -217,10 +238,6 @@ describe('List Reports Function', () => {
     }
   });
 
-  afterAll(async () => {
-    await deleteAllUsers();
-  });
-
   it('should return all reports when no filters are applied', async () => {
     const response = await callListReports({
       sortBy: 'createdAt',
@@ -246,6 +263,10 @@ describe('List Reports Function', () => {
     expect(data).toHaveProperty('result');
     expect(Array.isArray(data.result)).toBe(true);
     
+    if (!data.result) {
+      throw new Error('Response missing result property');
+    }
+    
     const existingPendingCount = countExistingReportsByFilter(r => r.status === ReportStatus.pending);
     const newPendingCount = countNewReportsByFilter(data.result, r => r.status === ReportStatus.pending);
     
@@ -264,6 +285,10 @@ describe('List Reports Function', () => {
     const data = await response.json() as ListReportsResponse;
     expect(data).toHaveProperty('result');
     expect(Array.isArray(data.result)).toBe(true);
+    
+    if (!data.result) {
+      throw new Error('Response missing result property');
+    }
     
     const existingStrayCount = countExistingReportsByFilter(r => r.type === CatType.stray);
     const newStrayCount = countNewReportsByFilter(data.result, r => r.type === CatType.stray);
@@ -284,6 +309,10 @@ describe('List Reports Function', () => {
     const data = await response.json() as ListReportsResponse;
     expect(data).toHaveProperty('result');
     expect(Array.isArray(data.result)).toBe(true);
+    
+    if (!data.result) {
+      throw new Error('Response missing result property');
+    }
     
     const existingPendingStrayCount = countExistingReportsByFilter(
       r => r.status === ReportStatus.pending && r.type === CatType.stray

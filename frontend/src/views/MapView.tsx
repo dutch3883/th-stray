@@ -922,7 +922,7 @@ export const MapView = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden" style={{ paddingBottom: '4rem' }}>
       <MapFilterBar
         typeFilter={typeFilter}
         statusFilter={statusFilter}

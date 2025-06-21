@@ -6,6 +6,22 @@ import { Spinner } from '../components/Spinner';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { StatusUpdateModal } from '../components/StatusUpdateModal';
 import { useLanguage } from '../contexts/LanguageContext';
+import { MapFilterBar } from '../components/MapFilterBar';
+import { MapLegend } from '../components/MapLegend';
+import { MapLocationButton } from '../components/MapLocationButton';
+import { MapNoMatchesMessage } from '../components/MapNoMatchesMessage';
+import { 
+  getMarkerColor, 
+  getStatusColor, 
+  calculateZoomForArea, 
+  MIN_ZOOM_AREA,
+  isWithinBangkokArea,
+  MARKER_PATH,
+  infoWindowStyles,
+  isBoundsSmallerThanMinArea,
+  calculateTravelTimes,
+  formatTravelTime
+} from '../utils/mapUtils';
 
 const containerStyle = {
   width: '100%',
@@ -17,146 +33,76 @@ const defaultCenter = {
   lng: 100.5018
 };
 
-// Bangkok and connected provinces boundaries
-const BANGKOK_BOUNDS = {
-  north: 14.2,  // Northern boundary
-  south: 13.4,  // Southern boundary
-  east: 100.8,  // Eastern boundary
-  west: 100.3   // Western boundary
-};
+// Static libraries array to prevent script reloading
+const GOOGLE_MAPS_LIBRARIES: ("places" | "geometry")[] = ['places', 'geometry'];
 
-// Function to check if a location is within Bangkok and connected provinces
-const isWithinBangkokArea = (lat: number, lng: number): boolean => {
-  return lat >= BANGKOK_BOUNDS.south && 
-         lat <= BANGKOK_BOUNDS.north && 
-         lng >= BANGKOK_BOUNDS.west && 
-         lng <= BANGKOK_BOUNDS.east;
-};
-
-const TH_LANG = 'th';
-const TH_REGION = 'TH';
-
-// Custom marker SVG path - Modern teardrop design
-const MARKER_PATH = "M12,2C8.13,2 5,5.13 5,9c0,5.25 7,13 7,13s7,-7.75 7,-13c0,-3.87 -3.13,-7 -7,-7zM9.5,9c0,-1.38 1.12,-2.5 2.5,-2.5s2.5,1.12 2.5,2.5 -1.12,2.5 -2.5,2.5 -2.5,-1.12 -2.5,-2.5z";
-
-// Helper function to get marker color based on cat type
-const getMarkerColor = (type: CatType): string => {
-  switch (type) {
-    case CatType.STRAY:
-      return '#D4AF37'; // Darker gold for stray cats
-    case CatType.INJURED:
-      return '#E63946'; // Darker coral red for injured cats
-    case CatType.SICK:
-      return '#2A9D8F'; // Darker turquoise for sick cats
-    case CatType.KITTEN:
-      return '#457B9D'; // Darker blue for kittens
-    default:
-      return '#FFFFFF'; // White
-  }
-};
-
-// Helper function to get status color
-const getStatusColor = (status: ReportStatus): string => {
-  switch (status) {
-    case ReportStatus.PENDING:
-      return '#D4AF37'; // Darker gold
-    case ReportStatus.COMPLETED:
-      return '#2A9D8F'; // Darker green
-    case ReportStatus.ON_HOLD:
-      return '#E76F51'; // Darker orange
-    case ReportStatus.CANCELLED:
-      return '#E63946'; // Darker red
-    default:
-      return '#FFFFFF'; // White
-  }
-};
-
-// Constants for map bounds
-const MIN_ZOOM_AREA = 9; // 9 square kilometers
-const DEGREES_PER_KM = 0.009; // Approximately 0.009 degrees per kilometer at the equator
-
-// Function to calculate zoom level for a given area in square kilometers
-const calculateZoomForArea = (area: number, lat: number): number => {
-  // Convert area to degrees
-  const sideLengthKm = Math.sqrt(area);
-  const latDelta = sideLengthKm * DEGREES_PER_KM;
-  const lngDelta = sideLengthKm * DEGREES_PER_KM / Math.cos(lat * Math.PI / 180);
-  
-  // Calculate zoom level (approximate formula)
-  const zoom = Math.floor(Math.log2(360 / Math.max(latDelta, lngDelta)));
-  return zoom;
-};
-
-// Function to calculate bounds for a minimum area
-const calculateMinBounds = (center: google.maps.LatLng): google.maps.LatLngBounds => {
-  const halfSide = Math.sqrt(MIN_ZOOM_AREA) / 2; // Half the side length of the square
-  const latDelta = halfSide * DEGREES_PER_KM;
-  const lngDelta = halfSide * DEGREES_PER_KM / Math.cos(center.lat() * Math.PI / 180);
-
-  return new google.maps.LatLngBounds(
-    new google.maps.LatLng(center.lat() - latDelta, center.lng() - lngDelta),
-    new google.maps.LatLng(center.lat() + latDelta, center.lng() + lngDelta)
-  );
-};
-
-// Function to check if bounds are smaller than minimum area
-const isBoundsSmallerThanMinArea = (bounds: google.maps.LatLngBounds): boolean => {
-  const ne = bounds.getNorthEast();
-  const sw = bounds.getSouthWest();
-  const latDelta = ne.lat() - sw.lat();
-  const lngDelta = ne.lng() - sw.lng();
-  const centerLat = (ne.lat() + sw.lat()) / 2;
-  
-  // Convert degrees to kilometers
-  const latKm = latDelta / DEGREES_PER_KM;
-  const lngKm = (lngDelta * Math.cos(centerLat * Math.PI / 180)) / DEGREES_PER_KM;
-  
-  // Calculate area in square kilometers
-  const area = latKm * lngKm;
-  
-  return area < MIN_ZOOM_AREA;
-};
-
-// Add custom styles for info window
-const infoWindowStyles = `
-  .gm-style-iw {
-    padding: 0 !important;
-    margin: 0 !important;
-    max-width: none !important;
-  }
-  .gm-style-iw-d {
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: hidden !important;
-  }
-  .gm-style-iw-c {
-    padding: 0 !important;
-    margin: 0 !important;
-    border-radius: 8px !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-  }
-  .gm-style-iw-ch {
-    display: none !important;
-  }
-  .gm-style-iw-chr {
-    position: absolute !important;
-    right: 0 !important;
-  }
-  .gm-style-iw-t::after {
-    display: none !important;
-  }
-`;
+interface URLParams {
+  reportId?: number | null;
+  type?: CatType | 'all';
+  status?: ReportStatus | 'all';
+  samePage?: boolean;
+  bypassLocation?: boolean;
+}
 
 export const MapView = () => {
   const { t, language } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  // Get initial states from URL parameters
-  const reportId = searchParams.get('reportId') ? Number(searchParams.get('reportId')) : null;
-  const initialTypeFilter = searchParams.get('type') as CatType || 'all';
-  const initialStatusFilter = searchParams.get('status') as ReportStatus || 'all';
-  const isSamePage = searchParams.get('samePage') === 'true';
+  const updateURLParams = (
+    setSearchParams: (params: URLSearchParams) => void,
+    currentParams: URLSearchParams,
+    updates: URLParams,
+    replace: boolean = false
+  ) => {
+    const params = replace ? new URLSearchParams() : new URLSearchParams(currentParams);
+    
+    if (replace) {
+      // Replace mode: set all parameters from the updates object
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          if (typeof value === 'boolean') {
+            params.set(key, value.toString());
+          } else {
+            params.set(key, value.toString());
+          }
+        }
+      });
+    } else {
+      // Update mode: only update specified fields
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          if (typeof value === 'boolean') {
+            params.set(key, value.toString());
+          } else {
+            params.set(key, value.toString());
+          }
+        } else {
+          // Remove parameter if value is null, undefined, or empty string
+          params.delete(key);
+        }
+      });
+    }
+    
+    setSearchParams(params);
+  };
+
+  const getURLParams = (searchParams: URLSearchParams): URLParams => {
+    return {
+      reportId: searchParams.get('reportId') ? Number(searchParams.get('reportId')) : null,
+      type: (searchParams.get('type') as CatType) || 'all',
+      status: (searchParams.get('status') as ReportStatus) || 'all',
+      samePage: searchParams.get('samePage') === 'true',
+      bypassLocation: searchParams.get('bypassLocation') === 'true',
+    };
+  };
+
+  // Get initial states from URL parameters using unified function
+  const urlParams = getURLParams(searchParams);
+  const reportId = urlParams.reportId;
+  const initialTypeFilter = urlParams.type || 'all';
+  const initialStatusFilter = urlParams.status || 'all';
+  const isSamePage = urlParams.samePage || false;
   
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,9 +124,9 @@ export const MapView = () => {
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
-    libraries: ['places'],
+    libraries: GOOGLE_MAPS_LIBRARIES,
     language: language || 'th', // Use current language with fallback to prevent conflicts
-    region: TH_REGION,
+    region: 'TH',
   });
 
   // Update reportsRef when reports change
@@ -188,46 +134,25 @@ export const MapView = () => {
     reportsRef.current = reports;
   }, [reports]);
 
-  // Update URL when filters change
+  // Update URL when filters change using unified function
   useEffect(() => {
-    const params = new URLSearchParams(searchParams);
-    
-    if (reportId) {
-      params.set('reportId', reportId.toString());
-    } else {
-      params.delete('reportId');
-    }
-    
-    if (typeFilter !== 'all') {
-      params.set('type', typeFilter);
-    } else {
-      params.delete('type');
-    }
-    
-    if (statusFilter !== 'all') {
-      params.set('status', statusFilter);
-    } else {
-      params.delete('status');
-    }
-    
-    if (isSamePage) {
-      params.set('samePage', 'true');
-    } else {
-      params.delete('samePage');
-    }
-    
-    setSearchParams(params);
+    updateURLParams(setSearchParams, searchParams, {
+      reportId,
+      type: typeFilter,
+      status: statusFilter,
+      samePage: isSamePage
+    });
   }, [reportId, typeFilter, statusFilter, isSamePage, setSearchParams, searchParams]);
 
   const handleMarkerClick = useCallback((report: Report) => {
     console.log('Marker clicked:', { reportId: report.id, report, showInfoWindow });
-    setSearchParams({ 
-      reportId: report.id.toString(),
-      samePage: 'true'
+    updateURLParams(setSearchParams, searchParams, {
+      reportId: report.id,
+      samePage: true
     });
     setSelectedReport(report);
     setShowInfoWindow(true);
-  }, [setSearchParams]);
+  }, [setSearchParams, searchParams]);
 
   // Custom marker class that extends OverlayView
   const createCustomMarker = (
@@ -246,6 +171,8 @@ export const MapView = () => {
       private statusText: HTMLDivElement;
       private map: google.maps.Map;
       private clickCallback: (() => void) | null = null;
+      private travelTime: string | null = null;
+      private isCalculatingTravelTime: boolean = false;
 
       constructor() {
         super();
@@ -280,8 +207,8 @@ export const MapView = () => {
         this.statusText.style.fontSize = '12px';
         this.statusText.style.fontWeight = '600';
         this.statusText.style.textAlign = 'center';
-        this.statusText.style.width = '120px';
-        this.statusText.style.marginLeft = '-60px';
+        this.statusText.style.width = '140px';
+        this.statusText.style.marginLeft = '-70px';
         this.statusText.style.marginTop = '-90px';
         this.statusText.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
         this.statusText.style.padding = '6px 8px';
@@ -293,24 +220,8 @@ export const MapView = () => {
         this.statusText.style.cursor = 'pointer';
         this.statusText.style.transition = 'transform 0.2s, box-shadow 0.2s';
 
-        // Set status text content with enhanced styling
-        const typeText = t('common.cat.type.' + type.toLowerCase());
-        const statusText = t('report.status.' + status.toLowerCase());
-        
-        // Create HTML content with enhanced styling
-        this.statusText.innerHTML = `
-          <div style="
-            color: #1a1a1a;
-            margin-bottom: 2px;
-            font-size: 11px;
-            opacity: 0.8;
-          ">#${reportId} - ${typeText}</div>
-          <div style="
-            color: ${getStatusColor(status)};
-            font-size: 12px;
-            font-weight: 600;
-          ">${statusText}</div>
-        `;
+        // Set initial status text content
+        this.updateStatusText();
 
         // Add hover effect
         this.statusText.addEventListener('mouseover', () => {
@@ -331,6 +242,52 @@ export const MapView = () => {
         });
 
         this.setMap(map);
+        
+      }
+
+      // Update status text content with travel time
+      updateStatusText() {
+        const typeText = t('common.cat.type.' + this.type.toLowerCase());
+        const statusText = t('report.status.' + this.status.toLowerCase());
+        const travelTimeText = this.travelTime ? ` (${this.travelTime})` : '';
+        
+        // Create HTML content with enhanced styling
+        this.statusText.innerHTML = `
+          <div style="
+            color: #1a1a1a;
+            margin-bottom: 2px;
+            font-size: 11px;
+            opacity: 0.8;
+          ">#${this.reportId} - ${typeText}${travelTimeText}</div>
+          <div style="
+            color: ${getStatusColor(this.status)};
+            font-size: 12px;
+            font-weight: 600;
+          ">${statusText}</div>
+        `;
+      }
+
+      // Calculate travel time from current location
+      async calculateTravelTimeFromLocation(origin: google.maps.LatLng | null) {
+        if (!origin) {
+          this.travelTime = null;
+          this.updateStatusText();
+          return;
+        }
+
+        this.isCalculatingTravelTime = true;
+        this.updateStatusText();
+
+        try {
+          const travelTimes = await calculateTravelTimes(origin, [this.position], language);
+          this.travelTime = travelTimes[0];
+        } catch (error) {
+          console.error('Error calculating travel time for marker:', this.reportId, error);
+          this.travelTime = null;
+        } finally {
+          this.isCalculatingTravelTime = false;
+          this.updateStatusText();
+        }
       }
 
       onAdd() {
@@ -363,9 +320,35 @@ export const MapView = () => {
         this.clickCallback = callback;
         this.marker.addListener('click', callback);
       }
+
     }
 
     return new CustomMarker();
+  };
+
+  // Calculate travel times for all markers in batch
+  const calculateTravelTimesForAllMarkers = async (origin: google.maps.LatLng, markers: any[]) => {
+    if (markers.length === 0) return;
+
+    try {
+      const destinations = markers.map(marker => marker.position);
+      const travelTimes = await calculateTravelTimes(origin, destinations, language);
+      
+      // Update each marker with its travel time
+      markers.forEach((marker, index) => {
+        marker.travelTime = travelTimes[index];
+        marker.isCalculatingTravelTime = false;
+        marker.updateStatusText();
+      });
+    } catch (error) {
+      console.error('Error calculating travel times for markers:', error);
+      // Reset all markers to not calculating state
+      markers.forEach(marker => {
+        marker.travelTime = null;
+        marker.isCalculatingTravelTime = false;
+        marker.updateStatusText();
+      });
+    }
   };
 
   // Update markers when map or filtered reports change
@@ -425,6 +408,11 @@ export const MapView = () => {
     });
 
     markersRef.current = newMarkers;
+
+    // Calculate travel times for all markers if current location is available
+    if (currentLocation) {
+      calculateTravelTimesForAllMarkers(currentLocation, newMarkers);
+    }
 
     // Handle info window display
     if (showInfoWindow && selectedReport) {
@@ -608,12 +596,14 @@ export const MapView = () => {
           console.log('Info window close button clicked');
           setSelectedReport(null);
           setShowInfoWindow(false);
+          updateURLParams(setSearchParams, searchParams, { samePage: true });
         });
 
         google.maps.event.addListener(infoWindow, 'close', () => {
           console.log('Info window closed');
           setSelectedReport(null);
           setShowInfoWindow(false);
+          updateURLParams(setSearchParams, searchParams, { samePage: true });
         });
 
         // Add click listener to the button after the info window is opened
@@ -646,16 +636,18 @@ export const MapView = () => {
     }
 
     // If there's a specific report to focus on and it's not a same-page navigation
-    if (reportId && !isSamePage) {
+    if (reportId) {
       const targetReport = reportsRef.current.find(r => r.id === reportId);
       if (targetReport) {
         const position = new google.maps.LatLng(targetReport.location.lat, targetReport.location.long);
         mapRef.setCenter(position);
         mapRef.setZoom(calculateZoomForArea(MIN_ZOOM_AREA, targetReport.location.lat));
         setSelectedReport(targetReport);
-        setShowInfoWindow(true);
+        if(!isSamePage) {
+          setShowInfoWindow(true);
+        }
       }
-    } else if (!reportId) {
+    } else {
       // Calculate bounds to fit all markers within Bangkok area
       if (newMarkers.length > 0) {
         const bounds = new google.maps.LatLngBounds();
@@ -692,6 +684,7 @@ export const MapView = () => {
 
           // Check if bounds are smaller than minimum area and current zoom is larger than minimum
           const currentZoom = mapRef.getZoom() || 0;
+          console.log(`minzoom area = ${MIN_ZOOM_AREA}`, currentZoom);
           const minZoom = calculateZoomForArea(MIN_ZOOM_AREA, centerLat);
           
           if (isBoundsSmallerThanMinArea(bounds) && currentZoom > minZoom) {
@@ -707,36 +700,14 @@ export const MapView = () => {
         }
       }
     }
-  }, [mapRef, reports, isLoaded, reportId, typeFilter, statusFilter, handleMarkerClick, t, isSamePage, showInfoWindow, selectedReport]);
+  }, [mapRef, reports, isLoaded, reportId, typeFilter, statusFilter, handleMarkerClick, t, isSamePage, showInfoWindow, selectedReport, currentLocation, language]);
 
-  // Add click outside handler to close info window
+  // Update travel times when current location changes
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      // if (infoWindowRef.current && !isModalOpen) {
-      //   // Get the info window container
-      //   const infoWindowElement = document.querySelector('.gm-style-iw-c');
-      //   // Get the info window content
-      //   const infoWindowContent = document.querySelector('.gm-style-iw-d');
-        
-      //   // Check if click is outside both the container and content
-      //   if (infoWindowElement && 
-      //       infoWindowContent && 
-      //       !infoWindowElement.contains(event.target as Node) && 
-      //       !infoWindowContent.contains(event.target as Node)) {
-      //     console.log('Click outside info window detected');
-      //     infoWindowRef.current.close();
-      //     infoWindowRef.current = null;
-      //     setSelectedReport(null);
-      //     setShowInfoWindow(false);
-      //   }
-      // }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+    if (currentLocation && markersRef.current.length > 0) {
+      calculateTravelTimesForAllMarkers(currentLocation, markersRef.current);
+    }
+  }, [currentLocation]);
 
   useEffect(() => {
     fetchReports();
@@ -783,6 +754,15 @@ export const MapView = () => {
     }
   };
 
+  /**
+   * Helper function to clear reportId and related state
+   */
+  const clearReportId = () => {
+    updateURLParams(setSearchParams, searchParams, { reportId: null });
+    setSelectedReport(null);
+    setShowInfoWindow(false);
+  };
+
   const handleLegendClick = (type: CatType) => {
     // If the clicked type is already selected, clear the filter
     if (typeFilter === type) {
@@ -790,7 +770,9 @@ export const MapView = () => {
     } else {
       setTypeFilter(type);
     }
-    setSelectedReport(null);
+    
+    // Clear reportId and selected report when legend is clicked
+    clearReportId();
   };
 
   // Get current location and center map
@@ -833,6 +815,11 @@ export const MapView = () => {
           // Center map on current location
           mapRef.setCenter(location);
           mapRef.setZoom(15);
+          
+          // Calculate travel times for all markers from new location
+          if (markersRef.current.length > 0) {
+            calculateTravelTimesForAllMarkers(location, markersRef.current);
+          }
           
           setIsLocationLoading(false);
         },
@@ -892,44 +879,18 @@ export const MapView = () => {
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden">
-      <div className="bg-white p-4 shadow-sm">
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.filter.type')}</label>
-            <select
-              className="w-full p-2 border rounded"
-              value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value as CatType | 'all');
-                setSelectedReport(null);
-              }}
-            >
-              <option value="all">{t('report.filter.all_type')}</option>
-              <option value={CatType.STRAY}>{t('common.cat.type.stray')}</option>
-              <option value={CatType.INJURED}>{t('common.cat.type.injured')}</option>
-              <option value={CatType.SICK}>{t('common.cat.type.sick')}</option>
-              <option value={CatType.KITTEN}>{t('common.cat.type.kitten')}</option>
-            </select>
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('report.filter.status')}</label>
-            <select
-              className="w-full p-2 border rounded"
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as ReportStatus | 'all');
-                setSelectedReport(null);
-              }}
-            >
-              <option value="all">{t('report.filter.all_status')}</option>
-              <option value={ReportStatus.PENDING}>{t('report.status.pending')}</option>
-              <option value={ReportStatus.COMPLETED}>{t('report.status.completed')}</option>
-              <option value={ReportStatus.ON_HOLD}>{t('report.status.on_hold')}</option>
-              <option value={ReportStatus.CANCELLED}>{t('report.status.cancelled')}</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      <MapFilterBar
+        typeFilter={typeFilter}
+        statusFilter={statusFilter}
+        onTypeFilterChange={(type) => {
+          setTypeFilter(type);
+          clearReportId();
+        }}
+        onStatusFilterChange={(status) => {
+          setStatusFilter(status);
+          clearReportId();
+        }}
+      />
 
       <div className="flex-1 w-full relative">
         <GoogleMap
@@ -940,6 +901,11 @@ export const MapView = () => {
             setMapRef(map);
           }}
           options={{
+            mapTypeControl: false,
+            panControl: false,
+            fullscreenControl: false,
+            cameraControl: false,
+            gestureHandling: 'greedy',
             styles: [
               {
                 featureType: "poi",
@@ -952,107 +918,26 @@ export const MapView = () => {
 
         {/* No Matches Message */}
         {getFilteredReportsCount() === 0 && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg shadow-lg text-center">
-            <div className="text-gray-500 mb-2">
-              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="text-lg font-medium text-gray-700 mb-1">{t('map.no_matches')}</div>
-            <div className="text-sm text-gray-500">
-              {typeFilter !== 'all' && statusFilter !== 'all' 
-                ? t('map.no_matches.both_filters')
-                : typeFilter !== 'all'
-                ? t('map.no_matches.type_filter')
-                : statusFilter !== 'all'
-                ? t('map.no_matches.status_filter')
-                : t('map.no_matches.no_reports')}
-            </div>
-          </div>
+          <MapNoMatchesMessage
+            typeFilter={typeFilter}
+            statusFilter={statusFilter}
+          />
         )}
 
         {/* Legend */}
-        <div className="absolute bottom-[104px] right-4 bg-white rounded-lg shadow-lg overflow-hidden">
-          <div 
-            className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50"
-            onClick={() => setIsLegendCollapsed(!isLegendCollapsed)}
-          >
-            <div className="text-sm font-medium text-gray-700">{t('map.legend')}</div>
-            <button 
-              className="text-gray-500 hover:text-gray-700 focus:outline-none"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsLegendCollapsed(!isLegendCollapsed);
-              }}
-            >
-              <svg 
-                className={`w-4 h-4 transform transition-transform ${isLegendCollapsed ? 'rotate-180' : ''}`} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
-          <div className={`transition-all duration-300 ease-in-out ${isLegendCollapsed ? 'h-0' : 'h-auto'}`}>
-            <div className="p-3 pt-0 space-y-2">
-              <div 
-                className={`flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-gray-50 ${typeFilter === CatType.STRAY ? 'bg-gray-100' : ''}`}
-                onClick={() => handleLegendClick(CatType.STRAY)}
-              >
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: getMarkerColor(CatType.STRAY) }}></div>
-                <span className="text-sm text-gray-600">{t('common.cat.type.stray')}</span>
-              </div>
-              <div 
-                className={`flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-gray-50 ${typeFilter === CatType.INJURED ? 'bg-gray-100' : ''}`}
-                onClick={() => handleLegendClick(CatType.INJURED)}
-              >
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: getMarkerColor(CatType.INJURED) }}></div>
-                <span className="text-sm text-gray-600">{t('common.cat.type.injured')}</span>
-              </div>
-              <div 
-                className={`flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-gray-50 ${typeFilter === CatType.SICK ? 'bg-gray-100' : ''}`}
-                onClick={() => handleLegendClick(CatType.SICK)}
-              >
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: getMarkerColor(CatType.SICK) }}></div>
-                <span className="text-sm text-gray-600">{t('common.cat.type.sick')}</span>
-              </div>
-              <div 
-                className={`flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-gray-50 ${typeFilter === CatType.KITTEN ? 'bg-gray-100' : ''}`}
-                onClick={() => handleLegendClick(CatType.KITTEN)}
-              >
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: getMarkerColor(CatType.KITTEN) }}></div>
-                <span className="text-sm text-gray-600">{t('common.cat.type.kitten')}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <MapLegend
+          isCollapsed={isLegendCollapsed}
+          typeFilter={typeFilter}
+          onToggleCollapse={() => setIsLegendCollapsed(!isLegendCollapsed)}
+          onLegendClick={handleLegendClick}
+          getMarkerColor={getMarkerColor}
+        />
 
         {/* Current Location Button */}
-        <div className="absolute bottom-[104px] left-4">
-          <button
-            onClick={getCurrentLocation}
-            disabled={isLocationLoading}
-            className="bg-white px-4 py-3 rounded-lg shadow-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2"
-            title={t('map.myLocation')}
-          >
-            {isLocationLoading ? (
-              <svg className="w-5 h-5 text-gray-600 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            )}
-            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
-              {isLocationLoading ? t('map.locating') : t('map.myLocation')}
-            </span>
-          </button>
-        </div>
+        <MapLocationButton
+          isLocationLoading={isLocationLoading}
+          onGetCurrentLocation={getCurrentLocation}
+        />
       </div>
 
       <StatusUpdateModal

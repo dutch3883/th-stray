@@ -13,12 +13,9 @@ import { MapNoMatchesMessage } from '../components/MapNoMatchesMessage';
 import { 
   getMarkerColor, 
   getStatusColor, 
-  calculateZoomForArea, 
-  MIN_ZOOM_AREA,
   isWithinBangkokArea,
   MARKER_PATH,
   infoWindowStyles,
-  isBoundsSmallerThanMinArea,
   calculateTravelTimes,
   formatTravelTime
 } from '../utils/mapUtils';
@@ -424,15 +421,6 @@ export const MapView = () => {
         mapRef
       );
 
-      // // Only apply drop animation to the marker matching reportId
-      // if (reportId && report.id === reportId) {
-      //   console.log('Setting drop animation for report:', report.id);
-      //   marker.marker.setAnimation(google.maps.Animation.BOUNCE);
-      //   marker.marker.setZIndex(1000); // Set high z-index for selected marker
-      // } else {
-      //   marker.marker.setAnimation(null);
-      //   marker.marker.setZIndex(1); // Set normal z-index for other markers
-      // }
 
       // Add click listener to the marker
       marker.marker.addListener('click', () => {
@@ -676,7 +664,7 @@ export const MapView = () => {
       if (targetReport) {
         const position = new google.maps.LatLng(targetReport.location.lat, targetReport.location.long);
         mapRef.setCenter(position);
-        mapRef.setZoom(calculateZoomForArea(MIN_ZOOM_AREA, targetReport.location.lat));
+        mapRef.setZoom(13);
         setSelectedReport(targetReport);
         if(!isSamePage) {
           setShowInfoWindow(true);
@@ -723,13 +711,14 @@ export const MapView = () => {
 
           // Check if bounds are smaller than minimum area and current zoom is larger than minimum
           const currentZoom = mapRef.getZoom() || 0;
-          const minZoom = calculateZoomForArea(MIN_ZOOM_AREA, centerLat);
+          const minZoom = 13;
           
-          if (isBoundsSmallerThanMinArea(bounds) && currentZoom > minZoom) {
+          if (currentZoom > minZoom) {
             mapRef.setCenter(center);
             mapRef.setZoom(minZoom);
           } else {
             mapRef.fitBounds(bounds);
+            if (currentZoom > minZoom) mapRef.setZoom(minZoom);
           }
         } else {
           // If no valid markers, set default view of Bangkok
@@ -738,6 +727,28 @@ export const MapView = () => {
         }
       }
     }
+
+    // Debug: Print final zoom level with explanation
+    const finalZoom = mapRef.getZoom();
+    let zoomReason = '';
+    
+    if (reportId) {
+      zoomReason = `Specific report focus (reportId: ${reportId}) - zoom set to 13`;
+    } else if (myLocationSelected) {
+      zoomReason = 'User location selected - zoom set to 15';
+    } else if (newMarkers.length > 0) {
+      const currentZoom = mapRef.getZoom() || 0;
+      const minZoom = 13;
+      if (currentZoom > minZoom) {
+        zoomReason = `Bounds fitting with minimum zoom enforcement (min: ${minZoom})`;
+      } else {
+        zoomReason = 'Bounds fitting applied';
+      }
+    } else {
+      zoomReason = 'No valid markers - fallback to default Bangkok view';
+    }
+    
+    console.log('🎯 Final zoom level after marker render:', finalZoom, `(${zoomReason})`);
   }, [mapRef, reports, isLoaded, reportId, typeFilter, statusFilter, handleMarkerClick, t, isSamePage, showInfoWindow, selectedReport, currentLocation, myLocationSelected, language]);
 
   // Update travel times when current location changes

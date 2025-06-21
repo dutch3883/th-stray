@@ -52,50 +52,7 @@ export const getStatusColor = (status: ReportStatus): string => {
 };
 
 // Constants for map bounds
-export const MIN_ZOOM_AREA = 9; // 9 square kilometers
 export const DEGREES_PER_KM = 0.009; // Approximately 0.009 degrees per kilometer at the equator
-
-// Function to calculate zoom level for a given area in square kilometers
-export const calculateZoomForArea = (area: number, lat: number): number => {
-  // Convert area to degrees
-  const sideLengthKm = Math.sqrt(area);
-  const latDelta = sideLengthKm * DEGREES_PER_KM;
-  const lngDelta = sideLengthKm * DEGREES_PER_KM / Math.cos(lat * Math.PI / 180);
-  
-  // Calculate zoom level (approximate formula)
-  const zoom = Math.floor(Math.log2(360 / Math.max(latDelta, lngDelta)));
-  return zoom;
-};
-
-// Function to calculate bounds for a minimum area
-export const calculateMinBounds = (center: google.maps.LatLng): google.maps.LatLngBounds => {
-  const halfSide = Math.sqrt(MIN_ZOOM_AREA) / 2; // Half the side length of the square
-  const latDelta = halfSide * DEGREES_PER_KM;
-  const lngDelta = halfSide * DEGREES_PER_KM / Math.cos(center.lat() * Math.PI / 180);
-
-  return new google.maps.LatLngBounds(
-    new google.maps.LatLng(center.lat() - latDelta, center.lng() - lngDelta),
-    new google.maps.LatLng(center.lat() + latDelta, center.lng() + lngDelta)
-  );
-};
-
-// Function to check if bounds are smaller than minimum area
-export const isBoundsSmallerThanMinArea = (bounds: google.maps.LatLngBounds): boolean => {
-  const ne = bounds.getNorthEast();
-  const sw = bounds.getSouthWest();
-  const latDelta = ne.lat() - sw.lat();
-  const lngDelta = ne.lng() - sw.lng();
-  const centerLat = (ne.lat() + sw.lat()) / 2;
-  
-  // Convert degrees to kilometers
-  const latKm = latDelta / DEGREES_PER_KM;
-  const lngKm = (lngDelta * Math.cos(centerLat * Math.PI / 180)) / DEGREES_PER_KM;
-  
-  // Calculate area in square kilometers
-  const area = latKm * lngKm;
-  
-  return area < MIN_ZOOM_AREA;
-};
 
 // Add custom styles for info window
 export const infoWindowStyles = `

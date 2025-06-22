@@ -31,4 +31,4 @@ export const storage: FirebaseStorage = getStorage(app)
 const host = import.meta.env.VITE_CLOUD_FUNCTION_ENDPOINTS as string | undefined
 export const functions: Functions = host
   ? getFunctions(app, host.startsWith('http') ? host : `https://${host}`)
-  : getFunctions(app)
+  : getFunctions(app, 'asia-northeast1')

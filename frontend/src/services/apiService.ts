@@ -11,7 +11,7 @@ const auth = getAuth(app);
 const host = import.meta.env.VITE_CLOUD_FUNCTION_ENDPOINTS;
 const fns = host
   ? getFunctions(app, host.startsWith('http') ? host : `https://${host}`)
-  : getFunctions(app);
+  : getFunctions(app, 'asia-northeast1');
 
 // Type definitions
 export interface CreateReportParams {

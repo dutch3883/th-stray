@@ -365,6 +365,7 @@ export const MapView = () => {
           this.statusText.parentNode.removeChild(this.statusText);
         }
         this.marker.setMap(null);
+        this.statusText.innerHTML = '';
       }
 
       addClickListener(callback: () => void) {

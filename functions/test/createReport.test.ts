@@ -50,7 +50,7 @@ describe('Create Report Function', () => {
 
     // Call the create report function through the emulator
     const response: Response = await fetch(
-      'http://localhost:5001/th-stray/us-central1/createReport', 
+      'http://localhost:5001/th-stray/asia-northeast1/createReport', 
       {
         method: 'POST',
         headers: {
@@ -91,7 +91,7 @@ describe('Create Report Function', () => {
 
     // Call without auth token
     const response = await fetch(
-      'http://localhost:5001/th-stray/us-central1/createReport', 
+      'http://localhost:5001/th-stray/asia-northeast1/createReport', 
       {
         method: 'POST',
         headers: {

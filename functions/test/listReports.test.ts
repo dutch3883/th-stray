@@ -54,7 +54,7 @@ describe('List Reports Function', () => {
     }
 
     const response = await fetch(
-      'http://localhost:5001/th-stray/us-central1/listReports',
+      'http://localhost:5001/th-stray/asia-northeast1/listReports',
       {
         method: 'POST',
         headers,
@@ -153,7 +153,7 @@ describe('List Reports Function', () => {
     // Create all test reports
     for (const reportData of testReports) {
       const response = await fetch(
-        'http://localhost:5001/th-stray/us-central1/createReport',
+        'http://localhost:5001/th-stray/asia-northeast1/createReport',
         {
           method: 'POST',
           headers: {
@@ -200,7 +200,7 @@ describe('List Reports Function', () => {
     // Update first report to completed
     if (newReports.length > 0) {
       await fetch(
-        'http://localhost:5001/th-stray/us-central1/completeReport',
+        'http://localhost:5001/th-stray/asia-northeast1/completeReport',
         {
           method: 'POST',
           headers: {
@@ -220,7 +220,7 @@ describe('List Reports Function', () => {
     // Update second report to on hold
     if (newReports.length > 1) {
       await fetch(
-        'http://localhost:5001/th-stray/us-central1/putReportOnHold',
+        'http://localhost:5001/th-stray/asia-northeast1/putReportOnHold',
         {
           method: 'POST',
           headers: {
@@ -365,7 +365,7 @@ describe('List Reports Function', () => {
 
     // Try to list reports with reporter role
     const response = await fetch(
-      'http://localhost:5001/th-stray/us-central1/listReports',
+      'http://localhost:5001/th-stray/asia-northeast1/listReports',
       {
         method: 'POST',
         headers: {

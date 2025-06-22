@@ -48,7 +48,7 @@ function checkFunctionsEmulator(): void {
   const options = {
     hostname: 'localhost',
     port: 5001,
-    path: '/th-stray/us-central1/listMyReports',
+    path: '/th-stray/asia-northeast1/listMyReports',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

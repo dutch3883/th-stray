@@ -41,6 +41,23 @@ interface URLParams {
   bypassLocation?: boolean;
 }
 
+// Type definition for CustomMarker
+interface CustomMarker {
+  position: google.maps.LatLng;
+  status: ReportStatus;
+  type: CatType;
+  reportId: number;
+  marker: google.maps.Marker;
+  travelTime: string | null;
+  isCalculatingTravelTime: boolean;
+  hideStatusText: () => void;
+  showStatusText: () => void;
+  updateStatusText: () => void;
+  calculateTravelTimeFromLocation: (origin: google.maps.LatLng | null) => Promise<void>;
+  onRemove: () => void;
+  addClickListener: (callback: () => void) => void;
+}
+
 export const MapView = () => {
   const { t, language } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -111,7 +128,7 @@ export const MapView = () => {
   const [typeFilter, setTypeFilter] = useState<CatType | 'all'>(initialTypeFilter);
   const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>(initialStatusFilter);
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
-  const markersRef = useRef<any[]>([]);
+  const markersRef = useRef<CustomMarker[]>([]);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const reportsRef = useRef<Report[]>([]);
   const [isLegendCollapsed, setIsLegendCollapsed] = useState(false);
@@ -173,20 +190,21 @@ export const MapView = () => {
     type: CatType,
     reportId: number,
     map: google.maps.Map
-  ) => {
-    class CustomMarker extends google.maps.OverlayView {
+  ): CustomMarker => {
+    class CustomMarkerClass extends google.maps.OverlayView {
       public position: google.maps.LatLng;
       public status: ReportStatus;
       public type: CatType;
       public reportId: number;
       public marker: google.maps.Marker;
+      public travelTime: string | null = null;
+      public isCalculatingTravelTime: boolean = false;
       private statusText: HTMLDivElement;
       private map: google.maps.Map;
       private clickCallback: (() => void) | null = null;
-      private travelTime: string | null = null;
-      private isCalculatingTravelTime: boolean = false;
 
       constructor() {
+        console.log('construct marker', reportId);
         super();
         this.position = position;
         this.status = status;
@@ -303,6 +321,7 @@ export const MapView = () => {
       }
 
       onAdd() {
+        console.log('onAdd marker', this.reportId);
         const panes = this.getPanes();
         if (panes && panes.overlayLayer) {
           panes.overlayLayer.appendChild(this.statusText);
@@ -311,6 +330,7 @@ export const MapView = () => {
       }
 
       draw() {
+        console.log('draw marker', this.reportId);
         const projection = this.getProjection();
         if (projection) {
           const position = projection.fromLatLngToDivPixel(this.position);
@@ -322,6 +342,7 @@ export const MapView = () => {
       }
 
       onRemove() {
+        console.log('onRemove marker', this.reportId);
         if (this.statusText.parentNode) {
           this.statusText.parentNode.removeChild(this.statusText);
         }
@@ -333,13 +354,25 @@ export const MapView = () => {
         this.marker.addListener('click', callback);
       }
 
+      // Hide status text label
+      hideStatusText() {
+        console.log('hideStatusText marker', this.reportId);
+        this.statusText.style.display = 'none';
+      }
+
+      // Show status text label
+      showStatusText() {
+        console.log('showStatusText marker', this.reportId);
+        this.statusText.style.display = 'block';
+      }
+
     }
 
-    return new CustomMarker();
+    return new CustomMarkerClass();
   };
 
   // Calculate travel times for all markers in batch
-  const calculateTravelTimesForAllMarkers = async (origin: google.maps.LatLng, markers: any[]) => {
+  const calculateTravelTimesForAllMarkers = async (origin: google.maps.LatLng, markers: CustomMarker[]) => {
     if (markers.length === 0) return;
 
     try {
@@ -607,6 +640,9 @@ export const MapView = () => {
 
       const marker = markersRef.current.find(m => m.reportId === selectedReport.id);
       if (marker && marker.marker) {
+        // Hide the selected marker's status text label
+        marker.hideStatusText();
+        
         // Center map on selected marker
         const position = new google.maps.LatLng(selectedReport.location.lat, selectedReport.location.long);
         mapRef.setCenter(position);
@@ -617,6 +653,8 @@ export const MapView = () => {
         // Add event listeners for info window
         google.maps.event.addListener(infoWindow, 'closeclick', () => {
           console.log('Info window close button clicked');
+          // Show the marker's status text label when info window is closed
+          marker.showStatusText();
           setSelectedReport(null);
           setShowInfoWindow(false);
           updateURLParams(setSearchParams, searchParams, { samePage: true });
@@ -624,6 +662,8 @@ export const MapView = () => {
 
         google.maps.event.addListener(infoWindow, 'close', () => {
           console.log('Info window closed');
+          // Show the marker's status text label when info window is closed
+          marker.showStatusText();
           setSelectedReport(null);
           setShowInfoWindow(false);
           updateURLParams(setSearchParams, searchParams, { samePage: true });

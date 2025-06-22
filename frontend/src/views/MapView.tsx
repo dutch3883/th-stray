@@ -19,6 +19,7 @@ import {
   calculateTravelTimes,
   formatTravelTime
 } from '../utils/mapUtils';
+import { logDebug, logInfo, logWarn, logError, logger } from '../services/LoggingService';
 
 const containerStyle = {
   width: '100%',
@@ -56,6 +57,26 @@ interface CustomMarker {
   calculateTravelTimeFromLocation: (origin: google.maps.LatLng | null) => Promise<void>;
   onRemove: () => void;
   addClickListener: (callback: () => void) => void;
+}
+
+// Global debug function for console access
+declare global {
+  interface Window {
+    mapViewDebug: {
+      getReports: () => Report[];
+      getMarkers: () => CustomMarker[];
+      getSelectedReport: () => Report | null;
+      getFilters: () => { type: CatType | 'all'; status: ReportStatus | 'all' };
+      getMapState: () => { center: any; zoom: number | undefined; isLoaded: boolean };
+      setLogLevel: (level: number) => void;
+      getLogLevel: () => number;
+      refreshReports: () => Promise<void>;
+      clearFilters: () => void;
+      focusReport: (reportId: number) => void;
+      getCurrentLocation: () => void;
+      help: () => void;
+    };
+  }
 }
 
 export const MapView = () => {
@@ -173,7 +194,7 @@ export const MapView = () => {
   }, [reportId, typeFilter, statusFilter, isSamePage, setSearchParams, searchParams]);
 
   const handleMarkerClick = useCallback((report: Report) => {
-    console.log('Marker clicked:', { reportId: report.id, report, showInfoWindow });
+    logInfo('User selected report', { reportId: report.id, type: report.type, status: report.status });
     updateURLParams(setSearchParams, searchParams, {
       reportId: report.id,
       samePage: true
@@ -204,7 +225,6 @@ export const MapView = () => {
       private clickCallback: (() => void) | null = null;
 
       constructor() {
-        console.log('construct marker', reportId);
         super();
         this.position = position;
         this.status = status;
@@ -312,7 +332,7 @@ export const MapView = () => {
           const travelTimes = await calculateTravelTimes(origin, [this.position], language);
           this.travelTime = travelTimes[0];
         } catch (error) {
-          console.error('Error calculating travel time for marker:', this.reportId, error);
+          logError('Error calculating travel time for marker', { reportId: this.reportId, error });
           this.travelTime = null;
         } finally {
           this.isCalculatingTravelTime = false;
@@ -321,7 +341,6 @@ export const MapView = () => {
       }
 
       onAdd() {
-        console.log('onAdd marker', this.reportId);
         const panes = this.getPanes();
         if (panes && panes.overlayLayer) {
           panes.overlayLayer.appendChild(this.statusText);
@@ -330,7 +349,6 @@ export const MapView = () => {
       }
 
       draw() {
-        console.log('draw marker', this.reportId);
         const projection = this.getProjection();
         if (projection) {
           const position = projection.fromLatLngToDivPixel(this.position);
@@ -342,7 +360,7 @@ export const MapView = () => {
       }
 
       onRemove() {
-        console.log('onRemove marker', this.reportId);
+        logDebug('onRemove marker', this.reportId);
         if (this.statusText.parentNode) {
           this.statusText.parentNode.removeChild(this.statusText);
         }
@@ -356,13 +374,13 @@ export const MapView = () => {
 
       // Hide status text label
       hideStatusText() {
-        console.log('hideStatusText marker', this.reportId);
+        logDebug('hideStatusText marker', this.reportId);
         this.statusText.style.display = 'none';
       }
 
       // Show status text label
       showStatusText() {
-        console.log('showStatusText marker', this.reportId);
+        logDebug('showStatusText marker', this.reportId);
         this.statusText.style.display = 'block';
       }
 
@@ -386,7 +404,7 @@ export const MapView = () => {
         marker.updateStatusText();
       });
     } catch (error) {
-      console.error('Error calculating travel times for markers:', error);
+      logError('Error calculating travel times for markers:', error);
       // Reset all markers to not calculating state
       markers.forEach(marker => {
         marker.travelTime = null;
@@ -425,7 +443,7 @@ export const MapView = () => {
       });
 
       if (Object.keys(changes).length > 0) {
-        console.log('🔍 Marker re-render:', changes);
+        logDebug('🔍 Marker re-render:', changes);
       }
     }
 
@@ -454,10 +472,9 @@ export const MapView = () => {
         mapRef
       );
 
-
       // Add click listener to the marker
       marker.marker.addListener('click', () => {
-        console.log('Marker click event triggered:', report.id);
+        logDebug('Marker click event triggered:', report.id);
         handleMarkerClick(report);
       });
       return marker;
@@ -652,7 +669,7 @@ export const MapView = () => {
 
         // Add event listeners for info window
         google.maps.event.addListener(infoWindow, 'closeclick', () => {
-          console.log('Info window close button clicked');
+          logDebug('Info window close button clicked');
           // Show the marker's status text label when info window is closed
           marker.showStatusText();
           setSelectedReport(null);
@@ -661,7 +678,7 @@ export const MapView = () => {
         });
 
         google.maps.event.addListener(infoWindow, 'close', () => {
-          console.log('Info window closed');
+          logDebug('Info window closed');
           // Show the marker's status text label when info window is closed
           marker.showStatusText();
           setSelectedReport(null);
@@ -671,28 +688,27 @@ export const MapView = () => {
 
         // Add click listener to the button after the info window is opened
         google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
-          console.log('Info window DOM ready');
+          logDebug('Info window DOM ready');
           const button = document.getElementById('updateStatusBtn');
           if (button) {
-            console.log('Update status button found');
+            logDebug('Update status button found');
             button.addEventListener('click', () => {
-              console.log('Update status button clicked');
               setIsModalOpen(true);
             });
           } else {
-            console.warn('Update status button not found in DOM');
+            logWarn('Update status button not found in DOM');
           }
 
           const googleMapsButton = document.getElementById('openGoogleMapsBtn');
           if (googleMapsButton) {
-            console.log('Google Maps button found');
+            logDebug('Google Maps button found');
             googleMapsButton.addEventListener('click', () => {
-              console.log('Google Maps button clicked');
+              logDebug('Google Maps button clicked');
               const url = `https://www.google.com/maps?q=${selectedReport.location.lat},${selectedReport.location.long}`;
               window.open(url, '_blank');
             });
           } else {
-            console.warn('Google Maps button not found in DOM');
+            logWarn('Google Maps button not found in DOM');
           }
         });
       }
@@ -788,7 +804,7 @@ export const MapView = () => {
       zoomReason = 'No valid markers - fallback to default Bangkok view';
     }
     
-    console.log('🎯 Final zoom level after marker render:', finalZoom, `(${zoomReason})`);
+    logDebug('🎯 Final zoom level after marker render', { finalZoom, zoomReason });
   }, [mapRef, reports, isLoaded, reportId, typeFilter, statusFilter, handleMarkerClick, t, isSamePage, showInfoWindow, selectedReport, currentLocation, myLocationSelected, language]);
 
   // Update travel times when current location changes
@@ -809,8 +825,9 @@ export const MapView = () => {
         sortOrder: 'desc'
       });
       setReports(data);
+      logInfo('Reports fetched successfully', { count: data.length });
     } catch (error) {
-      console.error('Error fetching reports:', error);
+      logError('Error fetching reports:', error);
     } finally {
       setLoading(false);
     }
@@ -839,7 +856,7 @@ export const MapView = () => {
       setSelectedReport(null);
       setRemark('');
     } catch (error) {
-      console.error('Error updating status:', error);
+      logError('Error updating status:', error);
     }
   };
 
@@ -856,8 +873,10 @@ export const MapView = () => {
     // If the clicked type is already selected, clear the filter
     if (typeFilter === type) {
       setTypeFilter('all');
+      logInfo('Legend filter cleared', { previousType: type });
     } else {
       setTypeFilter(type);
+      logInfo('Legend filter applied', { newType: type });
     }
     
     // Clear reportId and selected report when legend is clicked
@@ -867,7 +886,7 @@ export const MapView = () => {
 
   // Get current location and center map
   const getCurrentLocation = () => {
-    console.log('Current location button clicked');
+    logDebug('Current location button clicked');
     if (!mapRef) return;
     
     // Clear reportId when getting current location
@@ -917,9 +936,10 @@ export const MapView = () => {
           }
           
           setIsLocationLoading(false);
+          logInfo('Current location acquired successfully', { latitude, longitude, markerCount: markersRef.current.length });
         },
         (error) => {
-          console.error('Error getting current location:', error);
+          logError('Error getting current location:', error);
           setIsLocationLoading(false);
           // You could show a toast notification here
         },
@@ -930,7 +950,7 @@ export const MapView = () => {
         }
       );
     } else {
-      console.error('Geolocation is not supported by this browser');
+      logError('Geolocation is not supported by this browser');
       setIsLocationLoading(false);
     }
   };
@@ -964,6 +984,116 @@ export const MapView = () => {
     };
   }, [currentLocationMarker]);
 
+  // Expose debug functions to window object
+  useEffect(() => {
+    window.mapViewDebug = {
+      getReports: () => {
+        logDebug('Debug: Getting reports', { count: reports.length });
+        return reports;
+      },
+      getMarkers: () => {
+        logDebug('Debug: Getting markers', { count: markersRef.current.length });
+        return markersRef.current;
+      },
+      getSelectedReport: () => {
+        logDebug('Debug: Getting selected report', { reportId: selectedReport?.id });
+        return selectedReport;
+      },
+      getFilters: () => {
+        logDebug('Debug: Getting filters', { typeFilter, statusFilter });
+        return { type: typeFilter, status: statusFilter };
+      },
+      getMapState: () => {
+        const center = mapRef?.getCenter();
+        const zoom = mapRef?.getZoom();
+        logDebug('Debug: Getting map state', { center: center?.toJSON(), zoom, isLoaded });
+        return { center: center?.toJSON(), zoom, isLoaded };
+      },
+      setLogLevel: (level: number) => {
+        logger.setLevel(level);
+        logInfo('Debug: Log level set', { level });
+      },
+      getLogLevel: () => {
+        const level = logger.getLevel();
+        logDebug('Debug: Getting log level', { level });
+        return level;
+      },
+      refreshReports: async () => {
+        logInfo('Debug: Refreshing reports');
+        await fetchReports();
+      },
+      clearFilters: () => {
+        logInfo('Debug: Clearing filters');
+        setTypeFilter('all');
+        setStatusFilter('all');
+        clearReportId();
+      },
+      focusReport: (reportId: number) => {
+        const report = reports.find(r => r.id === reportId);
+        if (report) {
+          logInfo('Debug: Focusing report', { reportId });
+          setSelectedReport(report);
+          setShowInfoWindow(true);
+          updateURLParams(setSearchParams, searchParams, { reportId, samePage: true });
+          
+          // Center map on the report
+          if (mapRef) {
+            const position = new google.maps.LatLng(report.location.lat, report.location.long);
+            mapRef.setCenter(position);
+            mapRef.setZoom(13);
+          }
+        } else {
+          logWarn('Debug: Report not found', { reportId });
+        }
+      },
+      getCurrentLocation: () => {
+        logInfo('Debug: Getting current location');
+        getCurrentLocation();
+      },
+      help: () => {
+        console.log(`
+🎯 MapView Debug Console Commands:
+
+📊 Data Access:
+  mapViewDebug.getReports()           - Get all reports
+  mapViewDebug.getMarkers()           - Get all markers
+  mapViewDebug.getSelectedReport()    - Get currently selected report
+  mapViewDebug.getFilters()           - Get current filters
+  mapViewDebug.getMapState()          - Get map center, zoom, and load state
+
+🔧 Actions:
+  mapViewDebug.refreshReports()       - Refresh reports from API
+  mapViewDebug.clearFilters()         - Clear all filters
+  mapViewDebug.focusReport(id)        - Focus on specific report (e.g., focusReport(123))
+  mapViewDebug.getCurrentLocation()   - Get user's current location
+
+⚙️ Logging:
+  mapViewDebug.setLogLevel(level)     - Set log level (0=ERROR, 1=WARN, 2=INFO, 3=DEBUG)
+  mapViewDebug.getLogLevel()          - Get current log level
+
+❓ Help:
+  mapViewDebug.help()                 - Show this help message
+
+💡 Examples:
+  mapViewDebug.focusReport(123)       - Focus on report ID 123
+  mapViewDebug.setLogLevel(3)         - Enable debug logging
+  mapViewDebug.clearFilters()         - Clear all filters
+        `);
+      }
+    };
+
+    // Show help message when debug functions are loaded
+    logInfo('Debug functions loaded', { 
+      available: Object.keys(window.mapViewDebug),
+      usage: 'Type mapViewDebug.help() for usage instructions'
+    });
+
+    // Cleanup on unmount
+    return () => {
+      (window as any).mapViewDebug = undefined;
+    };
+  }, [reports, selectedReport, typeFilter, statusFilter, mapRef, isLoaded, markersRef, searchParams, setSearchParams]);
+
   if (loading || !isLoaded) {
     return (
       <div className="h-[calc(100vh-64px)] w-full flex items-center justify-center">
@@ -979,11 +1109,13 @@ export const MapView = () => {
         statusFilter={statusFilter}
         onTypeFilterChange={(type) => {
           setTypeFilter(type);
+          logInfo('Type filter changed', { newType: type });
           clearReportId();
           setMyLocationSelected(null);
         }}
         onStatusFilterChange={(status) => {
           setStatusFilter(status);
+          logInfo('Status filter changed', { newStatus: status });
           clearReportId();
           setMyLocationSelected(null);
         }}
@@ -996,6 +1128,7 @@ export const MapView = () => {
           zoom={13}
           onLoad={(map) => {
             setMapRef(map);
+            logInfo('Google Maps initialized successfully');
           }}
           options={{
             mapTypeControl: false,

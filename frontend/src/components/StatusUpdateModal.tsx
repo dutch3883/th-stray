@@ -3,6 +3,7 @@ import { Report, ReportStatus } from '../types/report';
 import { api } from '../services/apiService';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Toast } from './Toast';
+import { logDebug, logError } from '../services/LoggingService';
 
 interface StatusUpdateModalProps {
   isOpen: boolean;
@@ -73,29 +74,29 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
   const handleStatusChange = async () => {
     if (!report) return;
 
-    console.log('StatusUpdateModal: handleStatusChange called', { reportId: report.id, currentStatus: report.status, newStatus, remark });
+    logDebug('StatusUpdateModal: handleStatusChange called', { reportId: report.id, currentStatus: report.status, newStatus, remark });
 
     setIsLoading(true);
 
     try {
       // Determine which API to call based on the transition
       if (report.status === ReportStatus.PENDING && newStatus === ReportStatus.ON_HOLD) {
-        console.log('Calling api.putReportOnHold');
+        logDebug('Calling api.putReportOnHold');
         await api.putReportOnHold({ reportId: report.id, remark });
       } else if (report.status === ReportStatus.PENDING && newStatus === ReportStatus.COMPLETED) {
-        console.log('Calling api.completeReport');
+        logDebug('Calling api.completeReport');
         await api.completeReport({ reportId: report.id, remark });
       } else if (report.status === ReportStatus.PENDING && newStatus === ReportStatus.CANCELLED) {
-        console.log('Calling api.cancelReport');
+        logDebug('Calling api.cancelReport');
         await api.cancelReport({ reportId: report.id, remark });
       } else if (report.status === ReportStatus.ON_HOLD && newStatus === ReportStatus.PENDING) {
-        console.log('Calling api.resumeReport');
+        logDebug('Calling api.resumeReport');
         await api.resumeReport({ reportId: report.id, remark });
       } else {
         throw new Error(`Invalid status transition from ${report.status} to ${newStatus}`);
       }
       
-      console.log('API call successful, calling onStatusUpdated');
+      logDebug('API call successful, calling onStatusUpdated');
       showToast(t('modal.status_update.success'), 'success');
       onStatusUpdated(newStatus);
       
@@ -104,7 +105,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
         onClose();
       }, 1000);
     } catch (error) {
-      console.error('Error updating status:', error);
+      logError('Error updating status:', error);
       
       // Extract error message from different error types
       let errorMessage = t('modal.status_update.error');
@@ -187,7 +188,7 @@ export const StatusUpdateModal: React.FC<StatusUpdateModalProps> = ({
               <button
                 className="px-4 py-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 active:scale-95 text-white rounded transition-all duration-150 ease-in-out font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 onClick={() => {
-                  console.log('Update button clicked');
+                  logDebug('Update button clicked');
                   handleStatusChange();
                 }}
                 disabled={isLoading}

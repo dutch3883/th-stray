@@ -366,6 +366,7 @@ export const MapView = () => {
         }
         this.marker.setMap(null);
         this.statusText.innerHTML = '';
+        this.statusText.style.display = 'none';
       }
 
       addClickListener(callback: () => void) {

@@ -9,6 +9,7 @@
     "scripts": {
         "buildWatch": "tsc -w -p tsconfig.json",
         "build": "tsc -p tsconfig.json",
+        "build-test": "tsc -p tsconfig.test.json",
         "lint": "eslint src --ext .ts,.js",
         "fix": "eslint src --fix --ext .ts,.js",
         "serve": "npm run build && firebase emulators:start --only functions,auth,firestore",
@@ -27,8 +28,10 @@
     "dependencies": {
         "class-transformer": "^0.5.1",
         "class-validator": "^0.14.2",
+        "fast-check": "^4.1.1",
         "firebase-admin": "^12.6.0",
         "firebase-functions": "^6.0.1",
+        "jsverify": "^0.8.4",
         "reflect-metadata": "^0.2.2"
     },
     "devDependencies": {

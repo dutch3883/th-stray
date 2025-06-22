@@ -1,7 +1,8 @@
 import { createTestUser, getAuthToken } from './auth';
-import { describe, it, beforeAll, expect, jest } from '@jest/globals';
+import { describe, it, beforeAll, afterEach, expect, jest } from '@jest/globals';
 import { AuthResponse } from './auth';
 import { CatType } from '../src/domain/Report';
+import { clearAllFirestoreData } from './firestore';
 
 // Add type definition for create report response
 interface CreateReportResponse {
@@ -22,15 +23,23 @@ interface ErrorResponse {
 jest.setTimeout(30000);
 describe('Create Report Function', () => {
   // Test user credentials
-  const testEmail = `test-user-${Date.now()}@example.com`;
+  const testEmail = `test-create-user-${Date.now()}@example.com`;
   const testPassword = 'Test123!';
   let authToken: string;
 
   beforeAll(async () => {
+    // Clear any existing test data
+    await clearAllFirestoreData();
+    
     // Create a test user and get authentication token
     await createTestUser(testEmail, testPassword);
     const auth: AuthResponse = await getAuthToken(testEmail, testPassword);
     authToken = auth.idToken;
+  });
+
+  afterEach(async () => {
+    // Clear Firestore data after each test to ensure isolation
+    await clearAllFirestoreData();
   });
 
   it('should successfully create a report when authenticated', async () => {

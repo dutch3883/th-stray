@@ -1,0 +1,36 @@
+{
+    "compilerOptions": {
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
+      /* === target & module === */
+      "target": "ES2020",                // Node 20 supports ES2020 natively
+      "module": "commonjs",              // Cloud Functions still expect CJS
+      "lib": ["ES2020"],
+  
+      /* === output === */
+      "outDir": "lib",                   // gcloud deploys compiled JS from here
+      "rootDirs": ["src", "test"],       // include both src and test as root directories
+      "sourceMap": true,                 // (optional) better stack traces
+  
+      /* === strictness === */
+      "strict": false,                    // all recommended strict flags
+      "noImplicitReturns": false,
+      "noUnusedLocals": false,
+  
+      /* === module resolution === */
+      "esModuleInterop": true,           // allow `import express from 'express'`
+      "forceConsistentCasingInFileNames": true,
+      "moduleResolution": "node",
+  
+      /* === Paths shared with Front-end === */
+      // If you put common type defs in ../../shared:
+      // "baseUrl": ".",                 // uncomment if you add "paths"
+      // "paths": { "@shared/*": ["../shared/*"] },
+  
+      /* === emit === */
+      "declaration": false,              // Functions don’t need .d.ts output
+      "skipLibCheck": true               // speeds up compile without risk
+    },
+    "include": ["test/**/*.ts"],
+    "exclude": ["node_modules", "lib"]
+  }

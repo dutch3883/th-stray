@@ -16,6 +16,7 @@ import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { checkAuthorization } from "./utils/auth";
+import { getUsersByIds } from "./services/roleService";
 import {
   Report,
   ReportStatus,
@@ -502,8 +503,21 @@ export const listReports = functions.https.onCall(
         });
       }
 
-      logger.info("fetched reports", { count: reports.length, obj: reports });
-      return serializeResponse(reports);
+      // Extract unique user IDs from reports
+      const userIds = [...new Set(reports.map(report => (report as any).uid))];
+      
+      // Fetch user details for all unique users
+      const users = await getUsersByIds(userIds);
+      const userMap = new Map(users.map(user => [user.uid, user]));
+
+      // Add user information to each report
+      const reportsWithUsers = reports.map(report => ({
+        ...report,
+        user: userMap.get((report as any).uid) || null
+      }));
+
+      logger.info("fetched reports with user info", { count: reportsWithUsers.length });
+      return serializeResponse(reportsWithUsers);
     } catch (e) {
       logger.error("firestore error", e);
       throw new HttpsError("internal", `Could not fetch reports. Error: ${e}`);

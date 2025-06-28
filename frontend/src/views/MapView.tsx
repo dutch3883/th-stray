@@ -20,6 +20,7 @@ import {
   formatTravelTime
 } from '../utils/mapUtils';
 import { logDebug, logInfo, logWarn, logError, logger } from '../services/LoggingService';
+import { env } from '../config/environment';
 
 const containerStyle = {
   width: '100%',
@@ -172,7 +173,7 @@ export const MapView = () => {
   } | null>(null);
 
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
+    googleMapsApiKey: env.googleMaps.apiKey,
     libraries: GOOGLE_MAPS_LIBRARIES,
     language: language || 'th', // Use current language with fallback to prevent conflicts
     region: 'TH',

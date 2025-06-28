@@ -10,6 +10,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "serve": "vite serve",
+    "serve-dev": "VITE_RUN_ENV=DEV vite serve",
+    "serve-prod": "VITE_RUN_ENV=PROD vite serve",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"

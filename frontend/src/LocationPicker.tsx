@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from './contexts/LanguageContext';
-``
+import { env } from './config/environment';
+
 interface Location {
   lat: number;
   lng: number;
   description: string;
 }
-``
+
 interface LocationPickerProps {
   initialLocation: Location | null;
   onConfirm: (location: Location) => void;
@@ -42,7 +43,7 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
 
   // Use a fixed language for the loader to prevent conflicts
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY,
+    googleMapsApiKey: env.googleMaps.apiKey,
     libraries: ['places'],
     language: language || 'th', // Use current language with fallback to prevent conflicts
     region: 'TH',

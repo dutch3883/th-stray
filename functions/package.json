@@ -12,7 +12,7 @@
         "build-test": "tsc -p tsconfig.test.json",
         "lint": "eslint src --ext .ts,.js",
         "fix": "eslint src --fix --ext .ts,.js",
-        "serve": "npm run build && firebase emulators:start --only functions,auth,firestore",
+        "serve": "npm run build && firebase emulators:start --only functions,auth,firestore,storage",
         "shell": "npm run build && firebase functions:shell",
         "start": "npm run shell",
         "deploy": "npm run build && firebase deploy --only functions",

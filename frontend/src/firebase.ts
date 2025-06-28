@@ -1,9 +1,10 @@
 // src/firebase.ts
 import { initializeApp, FirebaseOptions, FirebaseApp } from 'firebase/app'
-import { getAuth, Auth }                             from 'firebase/auth'
-import { getFunctions, Functions }                   from 'firebase/functions'
-import { getFirestore, Firestore }                   from 'firebase/firestore'
-import { getStorage, FirebaseStorage }               from 'firebase/storage'
+import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth'
+import { getFunctions, Functions, connectFunctionsEmulator } from 'firebase/functions'
+import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage'
+import { env, isLocalEmulator } from './config/environment'
 
 const firebaseConfig: FirebaseOptions = {
   apiKey:            "AIzaSyDDDdTsl2gWdWaUMlnKkVRhzQhDxGbfA_w",
@@ -27,8 +28,31 @@ export const firestore: Firestore = getFirestore(app)
 // Initialize Storage
 export const storage: FirebaseStorage = getStorage(app)
 
-// Initialize Functions (optionally with a custom host from env)
-const host = import.meta.env.VITE_CLOUD_FUNCTION_ENDPOINTS as string | undefined
-export const functions: Functions = host
-  ? getFunctions(app, host.startsWith('http') ? host : `https://${host}`)
-  : getFunctions(app, 'asia-northeast1')
+// Initialize Functions with environment-based configuration
+export const functions: Functions = getFunctions(app, env.cloudFunctions.endpoint)
+
+// Connect to emulators in development if using local endpoint
+if (isLocalEmulator) {
+  console.log('🔧 Connecting to Firebase emulators...');
+  
+  try {
+    // Connect to Auth emulator
+    connectAuthEmulator(auth, env.firebaseAuth.endpoint.replace('http://', ''));
+    console.log('✅ Connected to Auth emulator');
+    
+    // Connect to Firestore emulator (default port 8080)
+    connectFirestoreEmulator(firestore, 'localhost', 8080);
+    console.log('✅ Connected to Firestore emulator');
+    
+    // Connect to Storage emulator
+    connectStorageEmulator(storage, 'localhost', 9199);
+    console.log('✅ Connected to Storage emulator');
+    
+    // Connect to Functions emulator
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+    console.log('✅ Connected to Functions emulator');
+    
+  } catch (error) {
+    console.warn('⚠️ Some emulators may already be connected:', error);
+  }
+}

@@ -42,6 +42,7 @@ jobs:
         run: npm run build --prefix frontend
         env:
           VITE_GOOGLE_MAPS_KEY: ${{ secrets.VITE_GOOGLE_MAPS_KEY }}
+          VITE_RUN_ENV: 'PROD'
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -58,6 +59,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && success()  # Only deploy on main branch
     env:
       VITE_GOOGLE_MAPS_KEY: ${{ secrets.VITE_GOOGLE_MAPS_KEY }}
+      VITE_RUN_ENV: ${{ github.ref == 'refs/heads/main' && 'PROD' || 'DEV' }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4

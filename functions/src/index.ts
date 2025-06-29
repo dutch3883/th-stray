@@ -504,19 +504,25 @@ export const listReports = functions.https.onCall(
       }
 
       // Extract unique user IDs from reports
-      const userIds = [...new Set(reports.map(report => (report as any).uid))];
-      
+      const userIds = [
+        ...new Set(
+          reports.map((report) => (report as unknown as { uid: string }).uid),
+        ),
+      ];
+
       // Fetch user details for all unique users
       const users = await getUsersByIds(userIds);
-      const userMap = new Map(users.map(user => [user.uid, user]));
+      const userMap = new Map(users.map((user) => [user.uid, user]));
 
       // Add user information to each report
-      const reportsWithUsers = reports.map(report => ({
+      const reportsWithUsers = reports.map((report) => ({
         ...report,
-        user: userMap.get((report as any).uid) || null
+        user: userMap.get((report as unknown as { uid: string }).uid) || null,
       }));
 
-      logger.info("fetched reports with user info", { count: reportsWithUsers.length });
+      logger.info("fetched reports with user info", {
+        count: reportsWithUsers.length,
+      });
       return serializeResponse(reportsWithUsers);
     } catch (e) {
       logger.error("firestore error", e);

@@ -15,21 +15,26 @@ fi
 
 USER_UID="$1"
 
-# install firebase-admin locally (silently)
-npm install firebase-admin >/dev/null 2>&1
+# Check if service account credentials are available
+if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+  echo "Error: GOOGLE_APPLICATION_CREDENTIALS environment variable is not set"
+  echo "Please set it to the path of your service account JSON file:"
+  echo "export GOOGLE_APPLICATION_CREDENTIALS=\"/path/to/your-service-account.json\""
+  exit 1
+fi
 
-# fetch and pretty-print the customClaims JSON
-node -e "
-const admin = require('firebase-admin');
-admin.initializeApp();  // reads GOOGLE_APPLICATION_CREDENTIALS
-admin
-  .auth()
-  .getUser('$USER_UID')
-  .then(user => {
-    console.log(JSON.stringify(user.customClaims || {}, null, 2));
-  })
-  .catch(err => {
-    console.error('Error fetching user:', err.message || err);
-    process.exit(1);
-  });
-"
+# Get access token using service account
+ACCESS_TOKEN=$(gcloud auth print-access-token --account-file="$GOOGLE_APPLICATION_CREDENTIALS" 2>/dev/null)
+
+if [ $? -ne 0 ]; then
+  echo "Error: Failed to get access token. Please check your service account credentials."
+  exit 1
+fi
+
+# Get custom claims using Firebase Auth REST API
+curl --silent --location "https://identitytoolkit.googleapis.com/v1/projects/th-stray/accounts:lookup?key=fakeapikey" \
+--header 'Content-Type: application/json' \
+--header "Authorization: Bearer $ACCESS_TOKEN" \
+--data "{
+    \"localId\": [\"$USER_UID\"]
+  }" | jq -r '.users[0].customAttributes // "{}"'

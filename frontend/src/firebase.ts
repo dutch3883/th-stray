@@ -5,15 +5,16 @@ import { getFunctions, Functions, connectFunctionsEmulator } from 'firebase/func
 import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore'
 import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage'
 import { env, isLocalEmulator } from './config/environment'
+import { logInfo, logWarn } from './services/LoggingService'
 
 const firebaseConfig: FirebaseOptions = {
-  apiKey:            "AIzaSyDDDdTsl2gWdWaUMlnKkVRhzQhDxGbfA_w",
-  authDomain:        "th-stray.firebaseapp.com",
-  projectId:         "th-stray",
-  storageBucket:     "th-stray.firebasestorage.app",
-  messagingSenderId: "334635767532",
-  appId:             "1:334635767532:web:5ff19fc9bd49809c3f37c9",
-  measurementId:     "G-RYRHXB6X9T",
+  apiKey:            env.firebase.apiKey,
+  authDomain:        env.firebase.authDomain,
+  projectId:         env.firebase.projectId,
+  storageBucket:     env.firebase.storageBucket,
+  messagingSenderId: env.firebase.messagingSenderId,
+  appId:             env.firebase.appId,
+  measurementId:     env.firebase.measurementId,
 }
  
 // Initialize App
@@ -29,30 +30,56 @@ export const firestore: Firestore = getFirestore(app)
 export const storage: FirebaseStorage = getStorage(app)
 
 // Initialize Functions with environment-based configuration
-export const functions: Functions = getFunctions(app, env.cloudFunctions.endpoint)
+export const functions: Functions = getFunctions(app, env.cloudFunctions.region)
 
 // Connect to emulators in development if using local endpoint
 if (isLocalEmulator) {
-  console.log('🔧 Connecting to Firebase emulators...');
+  logInfo('Connecting to Firebase emulators');
+  
+  // Prepare connection details
+  const authUrl = new URL(env.firebaseAuth.endpoint);
+  const storageUrl = new URL(env.firebaseStorage.endpoint);
+  const functionsUrl = new URL(env.cloudFunctions.endpoint);
+  
+  logInfo('Attempting to connect to emulators', {
+    auth: {
+      endpoint: env.firebaseAuth.endpoint,
+      host: authUrl.host
+    },
+    firestore: {
+      endpoint: 'localhost:8080'
+    },
+    storage: {
+      endpoint: env.firebaseStorage.endpoint,
+      hostname: storageUrl.hostname,
+      port: storageUrl.port
+    },
+    functions: {
+      endpoint: env.cloudFunctions.endpoint,
+      hostname: functionsUrl.hostname,
+      port: functionsUrl.port,
+      region: env.cloudFunctions.region
+    }
+  });
   
   try {
     // Connect to Auth emulator
-    connectAuthEmulator(auth, env.firebaseAuth.endpoint.replace('http://', ''));
-    console.log('✅ Connected to Auth emulator');
+    connectAuthEmulator(auth, authUrl.toString());
+    logInfo('Connected to Auth emulator', { endpoint: env.firebaseAuth.endpoint });
     
     // Connect to Firestore emulator (default port 8080)
     connectFirestoreEmulator(firestore, 'localhost', 8080);
-    console.log('✅ Connected to Firestore emulator');
+    logInfo('Connected to Firestore emulator', { endpoint: 'localhost:8080' });
     
     // Connect to Storage emulator
-    connectStorageEmulator(storage, 'localhost', 9199);
-    console.log('✅ Connected to Storage emulator');
+    connectStorageEmulator(storage, storageUrl.hostname, parseInt(storageUrl.port));
+    logInfo('Connected to Storage emulator', { endpoint: env.firebaseStorage.endpoint });
     
     // Connect to Functions emulator
-    connectFunctionsEmulator(functions, 'localhost', 5001);
-    console.log('✅ Connected to Functions emulator');
+    connectFunctionsEmulator(functions, functionsUrl.hostname, parseInt(functionsUrl.port));
+    logInfo('Connected to Functions emulator', { endpoint: env.cloudFunctions.endpoint, region: env.cloudFunctions.region });
     
   } catch (error) {
-    console.warn('⚠️ Some emulators may already be connected:', error);
+    logWarn('Some emulators may already be connected', { error });
   }
 }

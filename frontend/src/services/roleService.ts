@@ -1,6 +1,7 @@
 import { getAuth } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '../firebase';
+import { logger, logDebug, logError, logInfo } from './LoggingService';
 
 const auth = getAuth(app);
 const fns = getFunctions(app);
@@ -26,17 +27,35 @@ interface GetCustomClaimsResponse {
 export async function getUserRole(): Promise<UserRole> {
   const user = auth.currentUser;
   if (!user) {
+    logDebug('getUserRole: No current user, returning default role', { defaultRole: 'reporter' });
     return 'reporter';
   }
 
+  logDebug('getUserRole: Starting role fetch', { 
+    userId: user.uid, 
+    email: user.email,
+    emailVerified: user.emailVerified 
+  });
+
   try {
     // Force token refresh to ensure we have the latest claims
+    logDebug('getUserRole: Forcing token refresh');
     await user.getIdToken(true);
+    
     const idTokenResult = await user.getIdTokenResult();
-    // console.log(JSON.stringify(idTokenResult))
-    return (idTokenResult.claims.role as UserRole) || 'reporter';
+    logDebug('getUserRole: Token result received', {
+      userId: user.uid,
+      tokenClaims: idTokenResult.claims,
+      tokenExpirationTime: idTokenResult.expirationTime,
+      tokenIssuedAtTime: idTokenResult.issuedAtTime,
+      tokenAuthTime: idTokenResult.authTime
+    });
+
+    const role = (idTokenResult.claims.role as UserRole) || 'reporter';
+    logInfo('getUserRole: Role determined', { userId: user.uid, role });
+    return role;
   } catch (error) {
-    console.error('Error fetching user role:', error);
+    logError('getUserRole: Error fetching user role', { userId: user.uid, error });
     return 'reporter';
   }
 }
@@ -47,8 +66,15 @@ export async function getUserRole(): Promise<UserRole> {
  * @returns Promise resolving to true if the user has the role, false otherwise
  */
 export async function hasRole(role: UserRole): Promise<boolean> {
+  logDebug('hasRole: Checking role', { requestedRole: role });
   const userRole = await getUserRole();
-  return userRole === role;
+  const hasRoleResult = userRole === role;
+  logDebug('hasRole: Role check result', { 
+    requestedRole: role, 
+    userRole, 
+    hasRole: hasRoleResult 
+  });
+  return hasRoleResult;
 }
 
 /**
@@ -56,7 +82,10 @@ export async function hasRole(role: UserRole): Promise<boolean> {
  * @returns Promise resolving to true if the user is an admin, false otherwise
  */
 export async function isAdmin(): Promise<boolean> {
-  return hasRole('admin');
+  logDebug('isAdmin: Checking admin status');
+  const result = await hasRole('admin');
+  logDebug('isAdmin: Admin check result', { isAdmin: result });
+  return result;
 }
 
 /**
@@ -64,7 +93,10 @@ export async function isAdmin(): Promise<boolean> {
  * @returns Promise resolving to true if the user is a rescuer, false otherwise
  */
 export async function isRescuer(): Promise<boolean> {
-  return hasRole('rescuer');
+  logDebug('isRescuer: Checking rescuer status');
+  const result = await hasRole('rescuer');
+  logDebug('isRescuer: Rescuer check result', { isRescuer: result });
+  return result;
 }
 
 /**
@@ -72,7 +104,10 @@ export async function isRescuer(): Promise<boolean> {
  * @returns Promise resolving to true if the user is a reporter, false otherwise
  */
 export async function isReporter(): Promise<boolean> {
-  return hasRole('reporter');
+  logDebug('isReporter: Checking reporter status');
+  const result = await hasRole('reporter');
+  logDebug('isReporter: Reporter check result', { isReporter: result });
+  return result;
 }
 
 /**
@@ -82,15 +117,27 @@ export async function isReporter(): Promise<boolean> {
 export async function getCustomClaims(): Promise<UserClaims> {
   const user = auth.currentUser;
   if (!user) {
+    logDebug('getCustomClaims: No current user, returning empty claims');
     return {};
   }
+
+  logDebug('getCustomClaims: Fetching claims for user', { userId: user.uid });
 
   try {
     await user.getIdToken(true);
     const idTokenResult = await user.getIdTokenResult();
-    return idTokenResult.claims as UserClaims;
+    
+    logDebug('getCustomClaims: Token result received', {
+      userId: user.uid,
+      allClaims: idTokenResult.claims,
+      tokenExpirationTime: idTokenResult.expirationTime
+    });
+
+    const claims = idTokenResult.claims as UserClaims;
+    logInfo('getCustomClaims: Claims retrieved', { userId: user.uid, claims });
+    return claims;
   } catch (error) {
-    console.error('Error fetching custom claims:', error);
+    logError('getCustomClaims: Error fetching custom claims', { userId: user.uid, error });
     return {};
   }
 } 

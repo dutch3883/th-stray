@@ -7,6 +7,19 @@ import { ReportDTO, ReportStatus, CatType, Location } from '../types/report';
 
 const auth = getAuth(app);
 
+// User interface to match backend response
+export interface User {
+  uid: string;
+  email?: string;
+  displayName?: string;
+  photoURL?: string;
+}
+
+// Extended ReportDTO with user information
+export interface ReportWithUser extends ReportDTO {
+  user: User | null;
+}
+
 // Type definitions
 export interface CreateReportParams {
   numberOfCats: number;
@@ -43,7 +56,7 @@ export interface CountReportsParams {
 // Firebase function references
 const createReportFn = httpsCallable<CreateReportParams, { id: number }>(functions, 'createReport');
 const listMyReportsFn = httpsCallable<{}, ReportDTO[]>(functions, 'listMyReports');
-const listReportsFn = httpsCallable<ListReportsParams, ReportDTO[]>(functions, 'listReports');
+const listReportsFn = httpsCallable<ListReportsParams, ReportWithUser[]>(functions, 'listReports');
 const updateReportFn = httpsCallable<UpdateReportParams, void>(functions, 'updateReport');
 const cancelReportFn = httpsCallable<StatusChangeParams, void>(functions, 'cancelReport');
 const putReportOnHoldFn = httpsCallable<StatusChangeParams, void>(functions, 'putReportOnHold');
@@ -64,7 +77,7 @@ export const api = {
     return result.data;
   },
 
-  listReports: async (params: ListReportsParams): Promise<ReportDTO[]> => {
+  listReports: async (params: ListReportsParams): Promise<ReportWithUser[]> => {
     const result = await listReportsFn(params);
     return result.data;
   },

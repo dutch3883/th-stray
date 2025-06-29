@@ -7,6 +7,17 @@ export interface EnvironmentConfig {
   // Environment
   environment: Environment;
   
+  // Firebase Configuration (hardcoded)
+  firebase: {
+    apiKey: string;
+    authDomain: string;
+    projectId: string;
+    storageBucket: string;
+    messagingSenderId: string;
+    appId: string;
+    measurementId: string;
+  };
+  
   // Cloud Functions Configuration
   cloudFunctions: {
     endpoint: string;
@@ -81,6 +92,16 @@ function loadEnvironmentConfig(): EnvironmentConfig {
   
   const config: EnvironmentConfig = {
     environment: runEnv,
+    
+    firebase: {
+      apiKey: "AIzaSyDDDdTsl2gWdWaUMlnKkVRhzQhDxGbfA_w",
+      authDomain: "th-stray.firebaseapp.com",
+      projectId: "th-stray",
+      storageBucket: "th-stray.firebasestorage.app",
+      messagingSenderId: "334635767532",
+      appId: "1:334635767532:web:5ff19fc9bd49809c3f37c9",
+      measurementId: "G-RYRHXB6X9T",
+    },
     
     cloudFunctions: {
       endpoint: baseConfig.cloudFunctions?.endpoint || 'http://localhost:5001/th-stray/asia-northeast1',

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Libraries } from '@react-google-maps/api';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from './contexts/LanguageContext';
 import { env } from './config/environment';
@@ -19,6 +19,9 @@ interface LocationPickerProps {
 const containerStyle = { width: '100%', height: '60vh' }; // responsive map height
 const fallbackCenter = { lat: 13.7563, lng: 100.5018 };   // Bangkok
 const TH_REGION = 'TH';
+
+// Static libraries array to prevent reloads
+const GOOGLE_MAPS_LIBRARIES: Libraries = ['places'];
 
 // Bangkok and connected provinces boundaries
 const BANGKOK_BOUNDS = {
@@ -44,7 +47,7 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
   // Use a fixed language for the loader to prevent conflicts
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: env.googleMaps.apiKey,
-    libraries: ['places'],
+    libraries: GOOGLE_MAPS_LIBRARIES,
     language: language || 'th', // Use current language with fallback to prevent conflicts
     region: 'TH',
     nonce: '1234567890'

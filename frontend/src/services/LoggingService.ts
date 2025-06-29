@@ -1,3 +1,5 @@
+import { env } from '../config/environment';
+
 // Logging levels enum
 export enum LogLevel {
   ERROR = 0,
@@ -18,10 +20,8 @@ class LoggingService {
   private readonly STORAGE_KEY = 'straycat_log_level';
 
   constructor() {
-    // Load log level from localStorage or use default
     const savedLevel = this.loadLogLevelFromStorage();
     
-    // Default configuration - can be overridden
     this.config = {
       level: savedLevel,
       enableConsole: true,
@@ -29,13 +29,12 @@ class LoggingService {
     };
   }
 
-  // Load log level from localStorage
+  // Load log level from localStorage or use environment-based default
   private loadLogLevelFromStorage(): LogLevel {
     try {
       const saved = localStorage.getItem(this.STORAGE_KEY);
       if (saved !== null) {
         const level = parseInt(saved, 10);
-        // Validate that the level is within valid range
         if (level >= LogLevel.ERROR && level <= LogLevel.DEBUG) {
           return level;
         }
@@ -43,7 +42,8 @@ class LoggingService {
     } catch (error) {
       console.warn('Failed to load log level from localStorage:', error);
     }
-    return LogLevel.INFO; // Default fallback
+    
+    return env.app.enableDebugLogging ? LogLevel.DEBUG : LogLevel.INFO;
   }
 
   // Save log level to localStorage
@@ -53,11 +53,6 @@ class LoggingService {
     } catch (error) {
       console.warn('Failed to save log level to localStorage:', error);
     }
-  }
-
-  // Configure the logging service
-  configure(config: Partial<LoggingConfig>) {
-    this.config = { ...this.config, ...config };
   }
 
   // Get current timestamp for logging
@@ -74,8 +69,9 @@ class LoggingService {
   // Format log message
   private formatMessage(level: string, message: string, data?: any): string {
     const timestamp = this.getTimestamp();
+    const envStr = `[${env.environment}]`;
     const levelStr = `[${level}]`;
-    const baseMessage = `${timestamp}${levelStr} ${message}`;
+    const baseMessage = `${timestamp}${envStr}${levelStr} ${message}`;
     
     if (data !== undefined) {
       return `${baseMessage} ${JSON.stringify(data, null, 2)}`;
@@ -84,7 +80,7 @@ class LoggingService {
     return baseMessage;
   }
 
-  // Error level logging - for errors that need immediate attention
+  // Error level logging
   error(message: string, data?: any) {
     if (this.shouldLog(LogLevel.ERROR)) {
       const formattedMessage = this.formatMessage('ERROR', message, data);
@@ -94,7 +90,7 @@ class LoggingService {
     }
   }
 
-  // Warn level logging - for warnings that should be noted
+  // Warn level logging
   warn(message: string, data?: any) {
     if (this.shouldLog(LogLevel.WARN)) {
       const formattedMessage = this.formatMessage('WARN', message, data);
@@ -104,7 +100,7 @@ class LoggingService {
     }
   }
 
-  // Info level logging - for general information
+  // Info level logging
   info(message: string, data?: any) {
     if (this.shouldLog(LogLevel.INFO)) {
       const formattedMessage = this.formatMessage('INFO', message, data);
@@ -114,7 +110,7 @@ class LoggingService {
     }
   }
 
-  // Debug level logging - for detailed debugging information
+  // Debug level logging
   debug(message: string, data?: any) {
     if (this.shouldLog(LogLevel.DEBUG)) {
       const formattedMessage = this.formatMessage('DEBUG', message, data);
@@ -124,48 +120,25 @@ class LoggingService {
     }
   }
 
-  // Convenience method for logging objects
-  logObject(level: LogLevel, message: string, obj: any) {
-    switch (level) {
-      case LogLevel.ERROR:
-        this.error(message, obj);
-        break;
-      case LogLevel.WARN:
-        this.warn(message, obj);
-        break;
-      case LogLevel.INFO:
-        this.info(message, obj);
-        break;
-      case LogLevel.DEBUG:
-        this.debug(message, obj);
-        break;
-    }
-  }
-
-  // Method to set log level dynamically
+  // Set log level dynamically
   setLevel(level: LogLevel) {
     this.config.level = level;
     this.saveLogLevelToStorage(level);
   }
 
-  // Method to get current log level
+  // Get current log level
   getLevel(): LogLevel {
     return this.config.level;
   }
 
-  // Method to reset log level to default and clear localStorage
+  // Reset log level to environment-based default
   resetLevel(): void {
-    this.config.level = LogLevel.INFO;
+    this.config.level = env.app.enableDebugLogging ? LogLevel.DEBUG : LogLevel.INFO;
     try {
       localStorage.removeItem(this.STORAGE_KEY);
     } catch (error) {
       console.warn('Failed to clear log level from localStorage:', error);
     }
-  }
-
-  // Method to get the storage key for external access
-  getStorageKey(): string {
-    return this.STORAGE_KEY;
   }
 }
 

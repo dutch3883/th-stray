@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/apiService';
-import { Report, ReportStatus, CatType } from '../types/report';
+import { api, ReportWithUser } from '../services/apiService';
+import { ReportStatus, CatType } from '../types/report';
 import { Spinner } from '../components/Spinner';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '../theme';
@@ -40,13 +40,13 @@ const getStatusStyle = (status: ReportStatus) => {
 export const AllReports = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<ReportWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<CatType | 'all'>('all');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [selectedReport, setSelectedReport] = useState<ReportWithUser | null>(null);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<ReportStatus>(ReportStatus.PENDING);
   const [remark, setRemark] = useState('');
@@ -77,7 +77,7 @@ export const AllReports = () => {
   };
 
   // Helper functions for Thai text - now using translation system
-  const getStatusText = (status: ReportStatus, report?: Report): string => {
+  const getStatusText = (status: ReportStatus, report?: ReportWithUser): string => {
     if (status === ReportStatus.CANCELLED && report) {
       const cancelledStatus = report.statusHistory.find(
         change => change.to === ReportStatus.CANCELLED
@@ -183,11 +183,11 @@ export const AllReports = () => {
     }
   };
 
-  const handleViewOnMap = (report: Report) => {
+  const handleViewOnMap = (report: ReportWithUser) => {
     navigate(`/map?reportId=${report.id}`);
   };
 
-  const handleUpdateStatus = (report: Report) => {
+  const handleUpdateStatus = (report: ReportWithUser) => {
     setSelectedReport(report);
     setStatusModalOpen(true);
   };
@@ -319,6 +319,9 @@ export const AllReports = () => {
                   <div className="space-y-2" style={{ flex: 2 }}>
                     <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.type')}:</span> <span className="text-gray-800">{getTypeText(report.type)}</span></p>
                     <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.number_of_cats')}:</span> <span className="text-gray-800">{report.numberOfCats} {t('report.cats')}</span></p>
+                    {report.user?.displayName && (
+                      <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.reporter')}:</span> <span className="text-gray-800">{report.user.displayName}</span></p>
+                    )}
                     <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.contact')}:</span> <span className="text-gray-800">
                       <a 
                         href={`tel:${report.contactPhone}`}

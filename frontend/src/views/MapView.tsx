@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, InfoWindow } from '@react-google-maps/api';
-import { api } from '../services/apiService';
-import { Report, ReportStatus, CatType } from '../types/report';
+import { api, ReportWithUser } from '../services/apiService';
+import { ReportStatus, CatType } from '../types/report';
 import { Spinner } from '../components/Spinner';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { StatusUpdateModal } from '../components/StatusUpdateModal';
@@ -64,9 +64,9 @@ interface CustomMarker {
 declare global {
   interface Window {
     mapViewDebug: {
-      getReports: () => Report[];
+      getReports: () => ReportWithUser[];
       getMarkers: () => CustomMarker[];
-      getSelectedReport: () => Report | null;
+      getSelectedReport: () => ReportWithUser | null;
       getFilters: () => { type: CatType | 'all'; status: ReportStatus | 'all' };
       getMapState: () => { center: any; zoom: number | undefined; isLoaded: boolean };
       setLogLevel: (level: number) => void;
@@ -140,9 +140,9 @@ export const MapView = () => {
   const initialStatusFilter = urlParams.status || 'all';
   const isSamePage = urlParams.samePage || false;
   
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<ReportWithUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [selectedReport, setSelectedReport] = useState<ReportWithUser | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showInfoWindow, setShowInfoWindow] = useState(false);
   const [newStatus, setNewStatus] = useState<ReportStatus>(ReportStatus.PENDING);
@@ -152,7 +152,7 @@ export const MapView = () => {
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
   const markersRef = useRef<CustomMarker[]>([]);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
-  const reportsRef = useRef<Report[]>([]);
+  const reportsRef = useRef<ReportWithUser[]>([]);
   const [isLegendCollapsed, setIsLegendCollapsed] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<google.maps.LatLng | null>(null);
   const [currentLocationMarker, setCurrentLocationMarker] = useState<google.maps.Marker | null>(null);
@@ -194,7 +194,7 @@ export const MapView = () => {
     });
   }, [reportId, typeFilter, statusFilter, isSamePage, setSearchParams, searchParams]);
 
-  const handleMarkerClick = useCallback((report: Report) => {
+  const handleMarkerClick = useCallback((report: ReportWithUser) => {
     logInfo('User selected report', { reportId: report.id, type: report.type, status: report.status });
     updateURLParams(setSearchParams, searchParams, {
       reportId: report.id,
@@ -579,6 +579,24 @@ export const MapView = () => {
                   flex: 1;
                 ">${selectedReport.numberOfCats} ${t('map.cats')}</div>
               </div>
+              
+              ${selectedReport.user?.displayName ? `
+                <div style="
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                ">
+                  <div style="
+                    color: #6b7280;
+                    min-width: 80px;
+                  ">${t('report.reporter')}:</div>
+                  <div style="
+                    color: #1f2937;
+                    font-weight: 500;
+                    flex: 1;
+                  ">${selectedReport.user.displayName}</div>
+                </div>
+              ` : ''}
               
               ${selectedReport.description ? `
                 <div style="

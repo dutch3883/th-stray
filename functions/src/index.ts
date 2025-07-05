@@ -16,7 +16,7 @@ import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { checkAuthorization } from "./utils/auth";
-import { getUsersByIds } from "./services/roleService";
+import { getUsersByIds, getUserRole } from "./services/roleService";
 import {
   Report,
   ReportStatus,
@@ -425,6 +425,23 @@ export const completeReport = functions.https.onCall(
         "internal",
         `Could not complete report. Error: ${e}`,
       );
+    }
+  },
+);
+
+export const getUserRoleFunction = functions.https.onCall(
+  { region: "asia-northeast1" },
+  async (req) => {
+    logger.info("getUserRole", { uid: req.auth?.uid });
+    const uid = await checkAuthorization(req, "getUserRole");
+
+    try {
+      const role = await getUserRole(uid);
+      logger.info("fetched user role", { uid, role });
+      return serializeResponse({ role });
+    } catch (e) {
+      logger.error("error getting user role", e);
+      throw new HttpsError("internal", `Could not get user role. Error: ${e}`);
     }
   },
 );

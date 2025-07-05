@@ -2,6 +2,7 @@ import { getAuth } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '../firebase';
 import { logger, logDebug, logError, logInfo } from './LoggingService';
+import { api } from './apiService';
 
 const auth = getAuth(app);
 const fns = getFunctions(app);
@@ -21,8 +22,8 @@ interface GetCustomClaimsResponse {
 }
 
 /**
- * Get the current user's role from custom claims
- * @returns Promise resolving to the user's role, or undefined if no role is set
+ * Get the current user's role from Cloud Function (with user_setting override)
+ * @returns Promise resolving to the user's role, or 'reporter' as default
  */
 export async function getUserRole(): Promise<UserRole> {
   const user = auth.currentUser;
@@ -31,31 +32,19 @@ export async function getUserRole(): Promise<UserRole> {
     return 'reporter';
   }
 
-  logDebug('getUserRole: Starting role fetch', { 
+  logDebug('getUserRole: Starting role fetch from Cloud Function', { 
     userId: user.uid, 
     email: user.email,
     emailVerified: user.emailVerified 
   });
 
   try {
-    // Force token refresh to ensure we have the latest claims
-    logDebug('getUserRole: Forcing token refresh');
-    await user.getIdToken(true);
-    
-    const idTokenResult = await user.getIdTokenResult();
-    logDebug('getUserRole: Token result received', {
-      userId: user.uid,
-      tokenClaims: idTokenResult.claims,
-      tokenExpirationTime: idTokenResult.expirationTime,
-      tokenIssuedAtTime: idTokenResult.issuedAtTime,
-      tokenAuthTime: idTokenResult.authTime
-    });
-
-    const role = (idTokenResult.claims.role as UserRole) || 'reporter';
-    logInfo('getUserRole: Role determined', { userId: user.uid, role });
-    return role;
+    // Call Cloud Function to get role with user_setting override
+    const role = await api.getUserRole();
+    logInfo('getUserRole: Role received from Cloud Function', { userId: user.uid, role });
+    return role as UserRole;
   } catch (error) {
-    logError('getUserRole: Error fetching user role', { userId: user.uid, error });
+    logError('getUserRole: Error fetching user role from Cloud Function', { userId: user.uid, error });
     return 'reporter';
   }
 }

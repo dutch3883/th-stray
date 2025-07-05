@@ -33,6 +33,10 @@ export const OPERATION_CONFIG: Record<string, OperationConfig> = {
     requiresAuth: true,
   },
   complete: { allowedRoles: ["admin", "rescuer"], requiresAuth: true },
+  getUserRole: {
+    allowedRoles: ["admin", "rescuer", "reporter"],
+    requiresAuth: true,
+  },
 };
 
 export function checkAuth(req: functions.https.CallableRequest): string {

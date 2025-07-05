@@ -13,9 +13,33 @@ export interface UserDetails {
   lastSignInTime: Date;
 }
 
+export interface UserSettings {
+  role?: UserRole;
+}
+
 export async function getUserRole(uid: string): Promise<UserRole> {
   try {
+    // Get user to access email
     const user = await admin.auth().getUser(uid);
+    const email = user.email;
+
+    if (email) {
+      // First, try to get role from user_setting collection using email as key
+      const db = admin.firestore();
+      const userSettingsDoc = await db
+        .collection("user_setting")
+        .doc(email)
+        .get();
+
+      if (userSettingsDoc.exists) {
+        const data = userSettingsDoc.data();
+        if (data?.role) {
+          return data.role as UserRole;
+        }
+      }
+    }
+
+    // Fallback to Firebase Auth custom claims
     const role = user.customClaims?.role as UserRole;
     return role || "reporter";
   } catch (error) {
@@ -37,7 +61,7 @@ export async function getUsersByIds(userIds: string[]): Promise<UserDetails[]> {
     // Filter users by the provided IDs
     for (const userRecord of listUsersResult.users) {
       if (userIdSet.has(userRecord.uid)) {
-        const role = (userRecord.customClaims?.role as UserRole) || "reporter";
+        const role = await getUserRole(userRecord.uid);
 
         userDetails.push({
           uid: userRecord.uid,
@@ -67,7 +91,7 @@ export async function getUsersByIds(userIds: string[]): Promise<UserDetails[]> {
 export async function getUserById(uid: string): Promise<UserDetails | null> {
   try {
     const userRecord = await admin.auth().getUser(uid);
-    const role = (userRecord.customClaims?.role as UserRole) || "reporter";
+    const role = await getUserRole(uid);
 
     return {
       uid: userRecord.uid,

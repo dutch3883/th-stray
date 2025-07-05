@@ -64,6 +64,7 @@ const resumeReportFn = httpsCallable<StatusChangeParams, void>(functions, 'resum
 const completeReportFn = httpsCallable<StatusChangeParams, void>(functions, 'completeReport');
 const countAllReportsFn = httpsCallable<CountReportsParams, { count: number }>(functions, 'countAllReports');
 const countMyReportsFn = httpsCallable<{}, { count: number }>(functions, 'countMyReports');
+const getUserRoleFn = httpsCallable<{}, { role: string }>(functions, 'getUserRoleFunction');
 
 // Helper functions for type-safe API calls
 export const api = {
@@ -110,5 +111,10 @@ export const api = {
   countMyReports: async (): Promise<number> => {
     const result = await countMyReportsFn();
     return result.data.count;
+  },
+
+  getUserRole: async (): Promise<string> => {
+    const result = await getUserRoleFn();
+    return result.data.role;
   },
 };

@@ -19,35 +19,47 @@ service firebase.storage {
         && request.resource.size <= 5 * 1024 * 1024; // 5MB max
     }
 
+    function getUserRole() {
+    	return ("role" in request.auth.token) ? request.auth.token.role : 'reporter';
+    }
+
     function isAdmin() {
       return isAuthenticated() 
-        && request.auth.token.role == 'admin';
+        && getUserRole() == 'admin';
     }
 
     function isRescuer() {
       return isAuthenticated() 
-        && (request.auth.token.role == 'admin' || request.auth.token.role == 'rescuer');
+        && (getUserRole() == 'admin' || getUserRole() == 'rescuer');
     }
 
     function isReporter() {
       return isAuthenticated() 
-        && (request.auth.token.role == 'admin' 
-            || request.auth.token.role == 'rescuer' 
-            || request.auth.token.role == 'reporter');
+        && (getUserRole() == 'admin' 
+            || getUserRole() == 'rescuer' 
+            || getUserRole() == 'reporter');
+    }
+
+    function hasValidRole() {
+      return isAuthenticated() 
+        && (getUserRole() == 'admin' 
+            || getUserRole() == 'rescuer' 
+            || getUserRole() == 'reporter'); // Allow users with null role (fallback)
     }
 
     // Report images: /reports/{userId}/{imageId}
     match /reports/{userId}/{imageId} {
       // Allow read if:
       // 1. User is admin or rescuer (can read any image), or
-      // 2. User is reporter and owns the image
-      allow read: if isRescuer() || (isReporter() && isOwner(userId));
+      // 2. User is reporter and owns the image, or
+      // 3. User has null role and owns the image (fallback)
+      allow read: if isRescuer() || (hasValidRole() && isOwner(userId));
       
       // Allow create if:
-      // 1. User is authenticated and has reporter role
+      // 1. User is authenticated and has valid role (including null)
       // 2. User is uploading to their own folder
       // 3. File is an image under 5MB
-      allow create: if isReporter() 
+      allow create: if hasValidRole() 
         && isOwner(userId)
         && isValidImage();
         

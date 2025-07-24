@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Report, CatType } from '../types/report';
+import { Report, CatType, ResidentType } from '../types/report';
 import { api } from '../services/apiService';
 import { uploadImageAndGetUrl } from '../services/storageService';
 import LocationPicker from '../LocationPicker';
@@ -35,12 +35,22 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
     contactPhone: string;
     description: string;
     canSpeakEnglish: boolean;
+    isEmergency: boolean;
+    residentType: ResidentType;
+    socialMedia: string;
+    problem: string;
+    additionalLocationDetails: string;
   }>({
     numberOfCats: report.numberOfCats,
     type: report.type,
     contactPhone: report.contactPhone,
     description: report.description || '',
     canSpeakEnglish: report.canSpeakEnglish,
+    isEmergency: report.isEmergency,
+    residentType: report.residentType,
+    socialMedia: report.socialMedia || '',
+    problem: report.problem,
+    additionalLocationDetails: report.additionalLocationDetails || '',
   });
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>(report.images);
@@ -67,6 +77,11 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
           images: report.images,
           location: report.location,
           canSpeakEnglish: formData.canSpeakEnglish,
+          isEmergency: formData.isEmergency,
+          residentType: formData.residentType,
+          socialMedia: formData.socialMedia || undefined,
+          problem: formData.problem,
+          additionalLocationDetails: formData.additionalLocationDetails || undefined,
         },
       });
       onClose();
@@ -206,6 +221,103 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
                 <span className="ml-2">{t('form.contact.english.no')}</span>
               </label>
             </div>
+          </div>
+
+          {/* Is it an emergency */}
+          <div>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.emergency.label')}</label>
+            <div className="flex gap-4">
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  className="form-radio"
+                  name="isEmergency"
+                  value="true"
+                  checked={formData.isEmergency === true}
+                  onChange={() => setFormData({ ...formData, isEmergency: true })}
+                />
+                <span className="ml-2">{t('form.emergency.yes')}</span>
+              </label>
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  className="form-radio"
+                  name="isEmergency"
+                  value="false"
+                  checked={formData.isEmergency === false}
+                  onChange={() => setFormData({ ...formData, isEmergency: false })}
+                />
+                <span className="ml-2">{t('form.emergency.no')}</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Resident or Tourist */}
+          <div>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.resident_type.label')}</label>
+            <div className="flex gap-4">
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  className="form-radio"
+                  name="residentType"
+                  value={ResidentType.RESIDENT}
+                  checked={formData.residentType === ResidentType.RESIDENT}
+                  onChange={() => setFormData({ ...formData, residentType: ResidentType.RESIDENT })}
+                />
+                <span className="ml-2">{t('form.resident_type.resident')}</span>
+              </label>
+              <label className="inline-flex items-center">
+                <input
+                  type="radio"
+                  className="form-radio"
+                  name="residentType"
+                  value={ResidentType.TOURIST}
+                  checked={formData.residentType === ResidentType.TOURIST}
+                  onChange={() => setFormData({ ...formData, residentType: ResidentType.TOURIST })}
+                />
+                <span className="ml-2">{t('form.resident_type.tourist')}</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Social Media */}
+          <div>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.social_media.label')}</label>
+            <input
+              type="text"
+              placeholder={t('form.social_media.placeholder')}
+              className="w-full border rounded p-2"
+              value={formData.socialMedia}
+              onChange={(e) => setFormData({ ...formData, socialMedia: e.target.value })}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* What is the problem */}
+          <div>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.problem.label')}</label>
+            <textarea
+              placeholder={t('form.problem.placeholder')}
+              className="w-full border rounded p-2"
+              value={formData.problem}
+              onChange={(e) => setFormData({ ...formData, problem: e.target.value })}
+              disabled={isSubmitting}
+              rows={3}
+            />
+          </div>
+
+          {/* Additional location details */}
+          <div>
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.location_details.label')}</label>
+            <textarea
+              placeholder={t('form.location_details.placeholder')}
+              className="w-full border rounded p-2"
+              value={formData.additionalLocationDetails}
+              onChange={(e) => setFormData({ ...formData, additionalLocationDetails: e.target.value })}
+              disabled={isSubmitting}
+              rows={2}
+            />
           </div>
 
           {/* Images */}

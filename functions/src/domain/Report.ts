@@ -15,6 +15,11 @@ export enum ReportStatus {
   cancelled = "cancelled",
 }
 
+export enum ResidentType {
+  resident = "resident",
+  tourist = "tourist",
+}
+
 export class LocationDto {
   @IsNumber() lat!: number;
   @IsNumber() long!: number;
@@ -52,6 +57,11 @@ export interface ReportData {
   createdAt: Date;
   updatedAt: Date;
   canSpeakEnglish: boolean;
+  isEmergency: boolean;
+  residentType: ResidentType;
+  socialMedia?: string;
+  problem: string;
+  additionalLocationDetails?: string;
   statusHistory: Array<{
     from: ReportStatus;
     to: ReportStatus;
@@ -85,6 +95,11 @@ export class Report {
       createdAt: data.createdAt || new Date(),
       updatedAt: data.updatedAt || new Date(),
       canSpeakEnglish: data.canSpeakEnglish ?? false,
+      isEmergency: data.isEmergency ?? false,
+      residentType: data.residentType || ResidentType.resident,
+      socialMedia: data.socialMedia,
+      problem: data.problem || "",
+      additionalLocationDetails: data.additionalLocationDetails,
       statusHistory: data.statusHistory || [],
       reportId: data.reportId || 0,
     };

@@ -3,7 +3,7 @@ import { User } from 'firebase/auth';
 import {api} from '../services/apiService';
 import { uploadImageAndGetUrl } from '../services/storageService';
 import LocationPicker from '../LocationPicker';
-import { CatType } from '../types/report';
+import { CatType, ResidentType } from '../types/report';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getThemeColor, getThemeBg, getButtonGradient, getSecondaryButtonGradient } from '../utils/themeUtils';
@@ -28,12 +28,22 @@ export default function ReportForm({ user }: ReportFormProps) {
     contactPhone: string;
     description: string;
     canSpeakEnglish: boolean | null;
+    isEmergency: boolean | null;
+    residentType: ResidentType | null;
+    socialMedia: string;
+    problem: string;
+    additionalLocationDetails: string;
   }>({
     type: CatType.STRAY,
     numberOfCats: 1,
     contactPhone: '',
     description: '',
     canSpeakEnglish: null,
+    isEmergency: null,
+    residentType: null,
+    socialMedia: '',
+    problem: '',
+    additionalLocationDetails: '',
   });
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
@@ -52,6 +62,18 @@ export default function ReportForm({ user }: ReportFormProps) {
     }
     if (formData.canSpeakEnglish === null) {
       alert(t('form.validation.english'));
+      return;
+    }
+    if (formData.isEmergency === null) {
+      alert(t('form.validation.emergency'));
+      return;
+    }
+    if (formData.residentType === null) {
+      alert(t('form.validation.resident_type'));
+      return;
+    }
+    if (!formData.problem.trim()) {
+      alert(t('form.validation.problem'));
       return;
     }
     setIsSubmitting(true);
@@ -78,6 +100,11 @@ export default function ReportForm({ user }: ReportFormProps) {
           description: location.description,
         },
         canSpeakEnglish: formData.canSpeakEnglish,
+        isEmergency: formData.isEmergency,
+        residentType: formData.residentType,
+        socialMedia: formData.socialMedia || undefined,
+        problem: formData.problem,
+        additionalLocationDetails: formData.additionalLocationDetails || undefined,
       });
 
       alert(t('form.submit.success'));
@@ -88,6 +115,11 @@ export default function ReportForm({ user }: ReportFormProps) {
         contactPhone: '',
         description: '',
         canSpeakEnglish: null,
+        isEmergency: null,
+        residentType: null,
+        socialMedia: '',
+        problem: '',
+        additionalLocationDetails: '',
       });
       setImages([]);
       setImagePreviewUrls([]);
@@ -247,6 +279,118 @@ export default function ReportForm({ user }: ReportFormProps) {
                   <span className="ml-3 font-medium">{t('form.contact.english.no')}</span>
                 </label>
               </div>
+            </div>
+
+            {/* Is it an emergency */}
+            <div className="space-y-3">
+              <label className={`block text-sm font-semibold ${getThemeColor(true, isRescueMode)}`}>
+                {t('form.emergency.label')}
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 transition-all duration-200 flex-1">
+                  <input
+                    type="radio"
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    name="isEmergency"
+                    value="true"
+                    checked={formData.isEmergency === true}
+                    onChange={() => setFormData({ ...formData, isEmergency: true })}
+                    disabled={isSubmitting}
+                  />
+                  <span className="ml-3 font-medium">{t('form.emergency.yes')}</span>
+                </label>
+                <label className="flex items-center p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 transition-all duration-200 flex-1">
+                  <input
+                    type="radio"
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    name="isEmergency"
+                    value="false"
+                    checked={formData.isEmergency === false}
+                    onChange={() => setFormData({ ...formData, isEmergency: false })}
+                    disabled={isSubmitting}
+                  />
+                  <span className="ml-3 font-medium">{t('form.emergency.no')}</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Resident or Tourist */}
+            <div className="space-y-3">
+              <label className={`block text-sm font-semibold ${getThemeColor(true, isRescueMode)}`}>
+                {t('form.resident_type.label')}
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 transition-all duration-200 flex-1">
+                  <input
+                    type="radio"
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    name="residentType"
+                    value={ResidentType.RESIDENT}
+                    checked={formData.residentType === ResidentType.RESIDENT}
+                    onChange={() => setFormData({ ...formData, residentType: ResidentType.RESIDENT })}
+                    disabled={isSubmitting}
+                  />
+                  <span className="ml-3 font-medium">{t('form.resident_type.resident')}</span>
+                </label>
+                <label className="flex items-center p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 transition-all duration-200 flex-1">
+                  <input
+                    type="radio"
+                    className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    name="residentType"
+                    value={ResidentType.TOURIST}
+                    checked={formData.residentType === ResidentType.TOURIST}
+                    onChange={() => setFormData({ ...formData, residentType: ResidentType.TOURIST })}
+                    disabled={isSubmitting}
+                  />
+                  <span className="ml-3 font-medium">{t('form.resident_type.tourist')}</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Social Media */}
+            <div className="space-y-2">
+              <label className={`block text-sm font-semibold ${getThemeColor(true, isRescueMode)}`}>
+                {t('form.social_media.label')}
+              </label>
+              <input
+                type="text"
+                placeholder={t('form.social_media.placeholder')}
+                className="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white"
+                value={formData.socialMedia}
+                onChange={(e) => setFormData({ ...formData, socialMedia: e.target.value })}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {/* What is the problem */}
+            <div className="space-y-2">
+              <label className={`block text-sm font-semibold ${getThemeColor(true, isRescueMode)}`}>
+                {t('form.problem.label')}
+              </label>
+              <textarea
+                placeholder={t('form.problem.placeholder')}
+                className="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white resize-none"
+                value={formData.problem}
+                onChange={(e) => setFormData({ ...formData, problem: e.target.value })}
+                disabled={isSubmitting}
+                rows={4}
+                required
+              />
+            </div>
+
+            {/* Additional location details */}
+            <div className="space-y-2">
+              <label className={`block text-sm font-semibold ${getThemeColor(true, isRescueMode)}`}>
+                {t('form.location_details.label')}
+              </label>
+              <textarea
+                placeholder={t('form.location_details.placeholder')}
+                className="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white resize-none"
+                value={formData.additionalLocationDetails}
+                onChange={(e) => setFormData({ ...formData, additionalLocationDetails: e.target.value })}
+                disabled={isSubmitting}
+                rows={3}
+              />
             </div>
 
             {/* รูปภาพ */}

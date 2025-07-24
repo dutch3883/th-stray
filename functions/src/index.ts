@@ -10,6 +10,7 @@ import {
   ArrayMaxSize,
   ValidateNested,
   IsOptional,
+  IsBoolean,
 } from "class-validator";
 import * as functions from "firebase-functions/v2";
 import * as admin from "firebase-admin";
@@ -23,6 +24,7 @@ import {
   CatType,
   LocationDto,
   FirestoreReportData,
+  ResidentType,
 } from "./domain/Report";
 
 admin.initializeApp();
@@ -68,6 +70,12 @@ class CreateReportDto {
   @ValidateNested()
   @Type(() => LocationDto)
   location!: LocationDto;
+  @IsBoolean() isEmergency!: boolean;
+  @IsEnum(ResidentType) residentType!: ResidentType;
+  @IsOptional() @IsString() socialMedia?: string;
+  @IsString() problem!: string;
+  @IsOptional() @IsString() additionalLocationDetails?: string;
+  @IsBoolean() canSpeakEnglish!: boolean;
 }
 
 class UpdateReportDto {
@@ -79,6 +87,12 @@ class UpdateReportDto {
   @ValidateNested()
   @Type(() => LocationDto)
   location!: LocationDto;
+  @IsBoolean() isEmergency!: boolean;
+  @IsEnum(ResidentType) residentType!: ResidentType;
+  @IsOptional() @IsString() socialMedia?: string;
+  @IsString() problem!: string;
+  @IsOptional() @IsString() additionalLocationDetails?: string;
+  @IsBoolean() canSpeakEnglish!: boolean;
 }
 
 class UpdateReportRequestDto {

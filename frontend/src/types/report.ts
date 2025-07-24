@@ -12,6 +12,11 @@ export enum CatType {
   KITTEN = 'kitten'
 }
 
+export enum ResidentType {
+  RESIDENT = 'resident',
+  TOURIST = 'tourist'
+}
+
 // Base location interface
 export interface Location {
   lat: number;
@@ -32,6 +37,11 @@ export interface ReportDTO {
   createdAt: Date;
   updatedAt: Date;
   canSpeakEnglish: boolean;
+  isEmergency: boolean;
+  residentType: ResidentType;
+  socialMedia?: string;
+  problem: string;
+  additionalLocationDetails?: string;
   statusHistory: Array<{
     from: ReportStatus;
     to: ReportStatus;

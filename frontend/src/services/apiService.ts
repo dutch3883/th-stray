@@ -3,7 +3,7 @@ import { getAuth } from 'firebase/auth';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '../firebase';
 import { functions } from '../firebase';
-import { ReportDTO, ReportStatus, CatType, Location } from '../types/report';
+import { ReportDTO, ReportStatus, CatType, Location, ResidentType } from '../types/report';
 
 const auth = getAuth(app);
 
@@ -29,6 +29,11 @@ export interface CreateReportParams {
   images: string[];
   location: Location;
   canSpeakEnglish: boolean;
+  isEmergency: boolean;
+  residentType: ResidentType;
+  socialMedia?: string;
+  problem: string;
+  additionalLocationDetails?: string;
 }
 
 export interface UpdateReportParams {

@@ -1,7 +1,7 @@
 import { createTestUser, getAuthToken } from './auth';
 import { describe, it, beforeAll, afterEach, expect, jest } from '@jest/globals';
 import { AuthResponse } from './auth';
-import { CatType } from '../src/domain/Report';
+import { CatType, ResidentType } from '../src/domain/Report';
 import { clearAllFirestoreData } from './firestore';
 
 // Add type definition for create report response
@@ -54,7 +54,13 @@ describe('Create Report Function', () => {
         lat: 13.7563,
         long: 100.5018,
         description: 'Near 7-11'
-      }
+      },
+      isEmergency: false,
+      residentType: ResidentType.resident,
+      socialMedia: 'test@instagram',
+      problem: 'Stray cat needs help',
+      additionalLocationDetails: 'Near the corner store',
+      canSpeakEnglish: true
     };
 
     // Call the create report function through the emulator
@@ -95,7 +101,13 @@ describe('Create Report Function', () => {
         lat: 13.7563,
         long: 100.5018,
         description: 'Near 7-11'
-      }
+      },
+      isEmergency: false,
+      residentType: ResidentType.resident,
+      socialMedia: 'test@instagram',
+      problem: 'Stray cat needs help',
+      additionalLocationDetails: 'Near the corner store',
+      canSpeakEnglish: true
     };
 
     // Call without auth token

@@ -333,6 +333,15 @@ export const AllReports = () => {
                     </span></p>
                     <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.location')}:</span> <span className="text-gray-800">{report.location.description}</span></p>
                     <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.english_communication')}:</span> <span className="text-gray-800">{report.canSpeakEnglish ? t('form.contact.english.yes') : t('form.contact.english.no')}</span></p>
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('form.emergency.label')}:</span> <span className="text-gray-800">{report.isEmergency ? t('form.emergency.yes') : t('form.emergency.no')}</span></p>
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('form.resident_type.label')}:</span> <span className="text-gray-800">{report.residentType === 'resident' ? t('form.resident_type.resident') : t('form.resident_type.tourist')}</span></p>
+                    {report.socialMedia && (
+                      <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('form.social_media.label')}:</span> <span className="text-gray-800">{report.socialMedia}</span></p>
+                    )}
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('form.problem.label')}:</span> <span className="text-gray-800">{report.problem}</span></p>
+                    {report.additionalLocationDetails && (
+                      <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('form.location_details.label')}:</span> <span className="text-gray-800">{report.additionalLocationDetails}</span></p>
+                    )}
                   </div>
                   <div style={{ flex: 1 }}>
                     {report.images.length > 0 && (

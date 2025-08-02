@@ -332,15 +332,15 @@ export const AllReports = () => {
                       </a>
                     </span></p>
                     <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.location')}:</span> <span className="text-gray-800">{report.location.description}</span></p>
-                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.english_communication')}:</span> <span className="text-gray-800">{report.canSpeakEnglish ? t('form.contact.english.yes') : t('form.contact.english.no')}</span></p>
-                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('form.emergency.label')}:</span> <span className="text-gray-800">{report.isEmergency ? t('form.emergency.yes') : t('form.emergency.no')}</span></p>
-                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('form.resident_type.label')}:</span> <span className="text-gray-800">{report.residentType === 'resident' ? t('form.resident_type.resident') : t('form.resident_type.tourist')}</span></p>
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('display.english_communication')}:</span> <span className="text-gray-800">{report.canSpeakEnglish ? t('display.english_communication.yes') : t('display.english_communication.no')}</span></p>
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('display.emergency')}:</span> <span className="text-gray-800">{report.isEmergency ? t('display.emergency.yes') : t('display.emergency.no')}</span></p>
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('display.resident_type')}:</span> <span className="text-gray-800">{report.residentType === 'resident' ? t('display.resident_type.resident') : t('display.resident_type.tourist')}</span></p>
                     {report.socialMedia && (
-                      <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('form.social_media.label')}:</span> <span className="text-gray-800">{report.socialMedia}</span></p>
+                      <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('display.social_media')}:</span> <span className="text-gray-800">{report.socialMedia}</span></p>
                     )}
-                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('form.problem.label')}:</span> <span className="text-gray-800">{report.problem}</span></p>
+                    <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('display.problem')}:</span> <span className="text-gray-800">{report.problem}</span></p>
                     {report.additionalLocationDetails && (
-                      <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('form.location_details.label')}:</span> <span className="text-gray-800">{report.additionalLocationDetails}</span></p>
+                      <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('display.location_details')}:</span> <span className="text-gray-800">{report.additionalLocationDetails}</span></p>
                     )}
                   </div>
                   <div style={{ flex: 1 }}>

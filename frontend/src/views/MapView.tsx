@@ -302,20 +302,59 @@ export const MapView = () => {
         const statusText = t('report.status.' + this.status.toLowerCase());
         const travelTimeText = this.travelTime ? ` (${this.travelTime})` : '';
         
+        // Check if this is an emergency report
+        const report = reportsRef.current.find(r => r.id === this.reportId);
+        const isEmergency = report?.isEmergency || false;
+        
         // Create HTML content with enhanced styling
         this.statusText.innerHTML = `
           <div style="
-            color: #1a1a1a;
+            color: ${isEmergency ? 'white' : '#1a1a1a'};
             margin-bottom: 2px;
             font-size: 11px;
-            opacity: 0.8;
+            opacity: ${isEmergency ? '0.9' : '0.8'};
           ">#${this.reportId} - ${typeText}${travelTimeText}</div>
           <div style="
-            color: ${getStatusColor(this.status)};
+            color: ${isEmergency ? 'white' : getStatusColor(this.status)};
             font-size: 12px;
             font-weight: 600;
           ">${statusText}</div>
         `;
+        
+        // Update background styling for emergency reports
+        if (isEmergency) {
+          this.statusText.style.backgroundColor = '#dc2626';
+          this.statusText.style.border = '2px solid #dc2626';
+          this.statusText.style.boxShadow = '0 2px 8px rgba(220, 38, 38, 0.3)';
+          
+          // Add warning icon to the status text
+          const warningIcon = `
+            <div style="
+              position: absolute;
+              top: -2px;
+              right: -2px;
+              width: 16px;
+              height: 16px;
+              background-color: #fbbf24;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border: 2px solid white;
+            ">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="#dc2626">
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+              </svg>
+            </div>
+          `;
+          
+          // Insert warning icon into the status text
+          this.statusText.innerHTML += warningIcon;
+        } else {
+          this.statusText.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+          this.statusText.style.border = '1px solid rgba(0,0,0,0.1)';
+          this.statusText.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        }
       }
 
       // Calculate travel time from current location
@@ -499,202 +538,217 @@ export const MapView = () => {
       const infoWindow = new google.maps.InfoWindow({
         content: `
           <div style="
-            min-width: 250px;
+            min-width: 300px;
             padding: 16px;
             font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             display: flex;
             flex-direction: column;
             gap: 16px;
+            background-color: ${selectedReport.isEmergency ? '#fef2f2' : 'white'};
+            border: ${selectedReport.isEmergency ? '2px solid #dc2626' : '1px solid #e5e7eb'};
+            border-radius: 8px;
           ">
             <div style="
               display: flex;
               align-items: center;
               gap: 8px;
-              border-bottom: 2px solid #e5e7eb;
+              border-bottom: 2px solid ${selectedReport.isEmergency ? '#dc2626' : '#e5e7eb'};
               padding-bottom: 8px;
+              background-color: ${selectedReport.isEmergency ? '#dc2626' : 'transparent'};
+              margin: -16px -16px 16px -16px;
+              padding: 12px 16px 8px 16px;
+              border-radius: ${selectedReport.isEmergency ? '6px 6px 0 0' : '0'};
             ">
-              <div style="
-                background-color: ${getMarkerColor(selectedReport.type)};
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-              "></div>
+              ${selectedReport.isEmergency ? `
+                <div style="
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  color: white;
+                  font-weight: 700;
+                  font-size: 16px;
+                  text-transform: uppercase;
+                  letter-spacing: 0.5px;
+                ">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#fbbf24">
+                    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                  </svg>
+                  [Emergency!!!]
+                </div>
+              ` : `
+                <div style="
+                  background-color: ${getMarkerColor(selectedReport.type)};
+                  width: 12px;
+                  height: 12px;
+                  border-radius: 50%;
+                "></div>
+              `}
               <h3 style="
                 margin: 0;
                 font-size: 18px;
                 font-weight: 600;
-                color: #1f2937;
+                color: ${selectedReport.isEmergency ? 'white' : '#1f2937'};
               ">${t('map.report')} #${selectedReport.id}</h3>
             </div>
 
             <div style="
-              display: flex;
-              flex-direction: column;
-              gap: 12px;
+              display: grid;
+              grid-template-columns: 120px 1fr;
+              gap: 8px 12px;
+              align-items: start;
             ">
               <div style="
-                display: flex;
-                align-items: center;
-                gap: 8px;
-              ">
-                <div style="
-                  color: #6b7280;
-                  min-width: 80px;
-                ">${t('map.status')}:</div>
-                <div style="
-                  color: #1f2937;
-                  font-weight: 500;
-                  flex: 1;
-                ">${t(`report.status.${selectedReport.status.toLowerCase()}`)}</div>
-              </div>
+                color: #6b7280;
+                font-size: 13px;
+                font-weight: 500;
+                padding: 4px 0;
+              ">${t('map.status')}:</div>
+              <div style="
+                color: #1f2937;
+                font-weight: 500;
+                font-size: 13px;
+                padding: 4px 0;
+              ">${t(`report.status.${selectedReport.status.toLowerCase()}`)}</div>
               
               <div style="
-                display: flex;
-                align-items: center;
-                gap: 8px;
-              ">
-                <div style="
-                  color: #6b7280;
-                  min-width: 80px;
-                ">${t('map.type')}:</div>
-                <div style="
-                  color: #1f2937;
-                  font-weight: 500;
-                  flex: 1;
-                ">${t(`common.cat.type.${selectedReport.type.toLowerCase()}`)}</div>
-              </div>
+                color: #6b7280;
+                font-size: 13px;
+                font-weight: 500;
+                padding: 4px 0;
+              ">${t('map.type')}:</div>
+              <div style="
+                color: #1f2937;
+                font-weight: 500;
+                font-size: 13px;
+                padding: 4px 0;
+              ">${t(`common.cat.type.${selectedReport.type.toLowerCase()}`)}</div>
               
               <div style="
-                display: flex;
-                align-items: center;
-                gap: 8px;
-              ">
-                <div style="
-                  color: #6b7280;
-                  min-width: 80px;
-                ">${t('map.numberOfCats')}:</div>
-                <div style="
-                  color: #1f2937;
-                  font-weight: 500;
-                  flex: 1;
-                ">${selectedReport.numberOfCats} ${t('map.cats')}</div>
-              </div>
+                color: #6b7280;
+                font-size: 13px;
+                font-weight: 500;
+                padding: 4px 0;
+              ">${t('map.numberOfCats')}:</div>
+              <div style="
+                color: #1f2937;
+                font-weight: 500;
+                font-size: 13px;
+                padding: 4px 0;
+              ">${selectedReport.numberOfCats} ${t('map.cats')}</div>
               
               ${selectedReport.user?.displayName ? `
                 <div style="
-                  display: flex;
-                  align-items: center;
-                  gap: 8px;
-                ">
-                  <div style="
-                    color: #6b7280;
-                    min-width: 80px;
-                  ">${t('report.reporter')}:</div>
-                  <div style="
-                    color: #1f2937;
-                    font-weight: 500;
-                    flex: 1;
-                  ">${selectedReport.user.displayName}</div>
-                </div>
+                  color: #6b7280;
+                  font-size: 13px;
+                  font-weight: 500;
+                  padding: 4px 0;
+                ">${t('report.reporter')}:</div>
+                <div style="
+                  color: #1f2937;
+                  font-weight: 500;
+                  font-size: 13px;
+                  padding: 4px 0;
+                ">${selectedReport.user.displayName}</div>
+              ` : ''}
+              
+              <div style="
+                color: #6b7280;
+                font-size: 13px;
+                font-weight: 500;
+                padding: 4px 0;
+              ">${t('display.contact_phone')}:</div>
+              <div style="
+                color: #1f2937;
+                font-weight: 500;
+                font-size: 13px;
+                padding: 4px 0;
+              ">${selectedReport.contactPhone}</div>
+              
+              <div style="
+                color: #6b7280;
+                font-size: 13px;
+                font-weight: 500;
+                padding: 4px 0;
+              ">${t('display.emergency')}:</div>
+              <div style="
+                color: #1f2937;
+                font-weight: 500;
+                font-size: 13px;
+                padding: 4px 0;
+              ">${selectedReport.isEmergency ? t('display.emergency.yes') : t('display.emergency.no')}</div>
+              
+              <div style="
+                color: #6b7280;
+                font-size: 13px;
+                font-weight: 500;
+                padding: 4px 0;
+              ">${t('display.resident_type')}:</div>
+              <div style="
+                color: #1f2937;
+                font-weight: 500;
+                font-size: 13px;
+                padding: 4px 0;
+              ">${selectedReport.residentType === 'resident' ? t('display.resident_type.resident') : t('display.resident_type.tourist')}</div>
+              
+              ${selectedReport.socialMedia ? `
+                <div style="
+                  color: #6b7280;
+                  font-size: 13px;
+                  font-weight: 500;
+                  padding: 4px 0;
+                ">${t('display.social_media')}:</div>
+                <div style="
+                  color: #1f2937;
+                  font-weight: 500;
+                  font-size: 13px;
+                  padding: 4px 0;
+                ">${selectedReport.socialMedia}</div>
               ` : ''}
               
               ${selectedReport.description ? `
                 <div style="
-                  display: flex;
-                  flex-direction: column;
-                  gap: 4px;
-                ">
-                  <div style="
-                    color: #6b7280;
-                  ">${t('map.description')}:</div>
-                  <div style="
-                    color: #1f2937;
-                    font-weight: 500;
-                    line-height: 1.4;
-                  ">${selectedReport.description}</div>
-                </div>
-              ` : ''}
-              
-              <div style="
-                display: flex;
-                align-items: center;
-                gap: 8px;
-              ">
-                <div style="
                   color: #6b7280;
-                  min-width: 80px;
-                ">${t('form.emergency.label')}:</div>
+                  font-size: 13px;
+                  font-weight: 500;
+                  padding: 4px 0;
+                ">${t('map.description')}:</div>
                 <div style="
                   color: #1f2937;
                   font-weight: 500;
-                  flex: 1;
-                ">${selectedReport.isEmergency ? t('form.emergency.yes') : t('form.emergency.no')}</div>
-              </div>
-              
-              <div style="
-                display: flex;
-                align-items: center;
-                gap: 8px;
-              ">
-                <div style="
-                  color: #6b7280;
-                  min-width: 80px;
-                ">${t('form.resident_type.label')}:</div>
-                <div style="
-                  color: #1f2937;
-                  font-weight: 500;
-                  flex: 1;
-                ">${selectedReport.residentType === 'resident' ? t('form.resident_type.resident') : t('form.resident_type.tourist')}</div>
-              </div>
-              
-              ${selectedReport.socialMedia ? `
-                <div style="
-                  display: flex;
-                  align-items: center;
-                  gap: 8px;
-                ">
-                  <div style="
-                    color: #6b7280;
-                    min-width: 80px;
-                  ">${t('form.social_media.label')}:</div>
-                  <div style="
-                    color: #1f2937;
-                    font-weight: 500;
-                    flex: 1;
-                  ">${selectedReport.socialMedia}</div>
-                </div>
-              ` : ''}
-              
-              <div style="
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-              ">
-                <div style="
-                  color: #6b7280;
-                ">${t('form.problem.label')}:</div>
-                <div style="
-                  color: #1f2937;
-                  font-weight: 500;
+                  font-size: 13px;
+                  padding: 4px 0;
                   line-height: 1.4;
-                ">${selectedReport.problem}</div>
-              </div>
+                ">${selectedReport.description}</div>
+              ` : ''}
+              
+              <div style="
+                color: #6b7280;
+                font-size: 13px;
+                font-weight: 500;
+                padding: 4px 0;
+              ">${t('display.problem')}:</div>
+              <div style="
+                color: #1f2937;
+                font-weight: 500;
+                font-size: 13px;
+                padding: 4px 0;
+                line-height: 1.4;
+              ">${selectedReport.problem}</div>
               
               ${selectedReport.additionalLocationDetails ? `
                 <div style="
-                  display: flex;
-                  flex-direction: column;
-                  gap: 4px;
-                ">
-                  <div style="
-                    color: #6b7280;
-                  ">${t('form.location_details.label')}:</div>
-                  <div style="
-                    color: #1f2937;
-                    font-weight: 500;
-                    line-height: 1.4;
-                  ">${selectedReport.additionalLocationDetails}</div>
-                </div>
+                  color: #6b7280;
+                  font-size: 13px;
+                  font-weight: 500;
+                  padding: 4px 0;
+                ">${t('display.location_details')}:</div>
+                <div style="
+                  color: #1f2937;
+                  font-weight: 500;
+                  font-size: 13px;
+                  padding: 4px 0;
+                  line-height: 1.4;
+                ">${selectedReport.additionalLocationDetails}</div>
               ` : ''}
             </div>
 

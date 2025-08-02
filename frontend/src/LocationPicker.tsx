@@ -48,7 +48,7 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: env.googleMaps.apiKey,
     libraries: GOOGLE_MAPS_LIBRARIES,
-    language: language || 'th', // Use current language with fallback to prevent conflicts
+    language: 'th', // Use fixed language to prevent loader conflicts
     region: 'TH',
     nonce: '1234567890'
   });

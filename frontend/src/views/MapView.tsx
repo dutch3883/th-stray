@@ -614,6 +614,88 @@ export const MapView = () => {
                   ">${selectedReport.description}</div>
                 </div>
               ` : ''}
+              
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              ">
+                <div style="
+                  color: #6b7280;
+                  min-width: 80px;
+                ">${t('form.emergency.label')}:</div>
+                <div style="
+                  color: #1f2937;
+                  font-weight: 500;
+                  flex: 1;
+                ">${selectedReport.isEmergency ? t('form.emergency.yes') : t('form.emergency.no')}</div>
+              </div>
+              
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              ">
+                <div style="
+                  color: #6b7280;
+                  min-width: 80px;
+                ">${t('form.resident_type.label')}:</div>
+                <div style="
+                  color: #1f2937;
+                  font-weight: 500;
+                  flex: 1;
+                ">${selectedReport.residentType === 'resident' ? t('form.resident_type.resident') : t('form.resident_type.tourist')}</div>
+              </div>
+              
+              ${selectedReport.socialMedia ? `
+                <div style="
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                ">
+                  <div style="
+                    color: #6b7280;
+                    min-width: 80px;
+                  ">${t('form.social_media.label')}:</div>
+                  <div style="
+                    color: #1f2937;
+                    font-weight: 500;
+                    flex: 1;
+                  ">${selectedReport.socialMedia}</div>
+                </div>
+              ` : ''}
+              
+              <div style="
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+              ">
+                <div style="
+                  color: #6b7280;
+                ">${t('form.problem.label')}:</div>
+                <div style="
+                  color: #1f2937;
+                  font-weight: 500;
+                  line-height: 1.4;
+                ">${selectedReport.problem}</div>
+              </div>
+              
+              ${selectedReport.additionalLocationDetails ? `
+                <div style="
+                  display: flex;
+                  flex-direction: column;
+                  gap: 4px;
+                ">
+                  <div style="
+                    color: #6b7280;
+                  ">${t('form.location_details.label')}:</div>
+                  <div style="
+                    color: #1f2937;
+                    font-weight: 500;
+                    line-height: 1.4;
+                  ">${selectedReport.additionalLocationDetails}</div>
+                </div>
+              ` : ''}
             </div>
 
             <div style="

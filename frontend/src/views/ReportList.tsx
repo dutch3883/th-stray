@@ -178,9 +178,19 @@ export default function ReportList({ user }: ReportListProps) {
                     }</p>
                     <p><span className="font-medium">{t('report.number_of_cats')}:</span> {report.numberOfCats} {t('report.cats')}</p>
                     <p><span className="font-medium">{t('report.contact_phone')}:</span> {report.contactPhone}</p>
+                    <p><span className="font-medium">{t('form.emergency.label')}:</span> {report.isEmergency ? t('form.emergency.yes') : t('form.emergency.no')}</p>
+                    <p><span className="font-medium">{t('form.resident_type.label')}:</span> {report.residentType === 'resident' ? t('form.resident_type.resident') : t('form.resident_type.tourist')}</p>
+                    <p><span className="font-medium">{t('report.english_communication')}:</span> {report.canSpeakEnglish ? t('form.contact.english.yes') : t('form.contact.english.no')}</p>
                   </div>
                   <div className="space-y-2">
                     <p><span className="font-medium">{t('report.location')}:</span> {report.location.description}</p>
+                    {report.socialMedia && (
+                      <p><span className="font-medium">{t('form.social_media.label')}:</span> {report.socialMedia}</p>
+                    )}
+                    <p><span className="font-medium">{t('form.problem.label')}:</span> {report.problem}</p>
+                    {report.additionalLocationDetails && (
+                      <p><span className="font-medium">{t('form.location_details.label')}:</span> {report.additionalLocationDetails}</p>
+                    )}
                   </div>
                 </div>
 

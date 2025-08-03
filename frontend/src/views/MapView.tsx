@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, InfoWindow } from '@react-google-maps/api';
 import { api, ReportWithUser } from '../services/apiService';
-import { ReportStatus, CatType } from '../types/report';
+import { ReportStatus, CatType, ContactType } from '../types/report';
 import { Spinner } from '../components/Spinner';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { StatusUpdateModal } from '../components/StatusUpdateModal';
@@ -662,7 +662,36 @@ export const MapView = () => {
                 font-weight: 500;
                 font-size: 13px;
                 padding: 4px 0;
-              ">${selectedReport.contactPhone}</div>
+                display: flex;
+                align-items: center;
+                gap: 4px;
+              ">
+                ${selectedReport.lineId ? `
+                  <a href="https://line.me/ti/p/${selectedReport.lineId}" 
+                     target="_blank" 
+                     rel="noopener noreferrer"
+                     style="color: #2563eb; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                    <img src="/images/LINE_logo.svg" alt="LINE" width="16" height="16" style="display: inline-block;"/>
+                    ${selectedReport.lineId}
+                  </a>
+                ` : selectedReport.whatsApp ? `
+                  <a href="https://wa.me/${selectedReport.whatsApp}" 
+                     target="_blank" 
+                     rel="noopener noreferrer"
+                     style="color: #2563eb; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                    <img src="/images/WhatsApp_Logo.svg" alt="WhatsApp" width="16" height="16" style="display: inline-block;"/>
+                    ${selectedReport.whatsApp}
+                  </a>
+                ` : selectedReport.contactPhone ? `
+                  <a href="tel:${selectedReport.contactPhone}" 
+                     style="color: #2563eb; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#2563EB" style="display: inline-block;">
+                      <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                    </svg>
+                    ${selectedReport.contactPhone}
+                  </a>
+                ` : 'No contact info'}
+              </div>
               
               <div style="
                 color: #6b7280;

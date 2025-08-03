@@ -64,7 +64,9 @@ async function getNextReportId(): Promise<number> {
 class CreateReportDto {
   @IsNumber() numberOfCats!: number;
   @IsEnum(CatType) type!: CatType;
-  @IsString() contactPhone!: string;
+  @IsOptional() @IsString() contactPhone?: string;
+  @IsOptional() @IsString() lineId?: string;
+  @IsOptional() @IsString() whatsApp?: string;
   description?: string;
   @IsArray() @ArrayMaxSize(3) @IsString({ each: true }) images!: string[];
   @ValidateNested()
@@ -81,7 +83,9 @@ class CreateReportDto {
 class UpdateReportDto {
   @IsNumber() numberOfCats!: number;
   @IsEnum(CatType) type!: CatType;
-  @IsString() contactPhone!: string;
+  @IsOptional() @IsString() contactPhone?: string;
+  @IsOptional() @IsString() lineId?: string;
+  @IsOptional() @IsString() whatsApp?: string;
   description?: string;
   @IsArray() @ArrayMaxSize(3) @IsString({ each: true }) images!: string[];
   @ValidateNested()
@@ -135,6 +139,15 @@ export const createReport = functions.https.onCall(
       throw new HttpsError(
         "invalid-argument",
         `Invalid data ${JSON.stringify(errs)}`,
+      );
+    }
+
+    // Manual validation: ensure at least one contact field is provided
+    if (!dto.contactPhone && !dto.lineId && !dto.whatsApp) {
+      logger.warn("No contact information provided");
+      throw new HttpsError(
+        "invalid-argument",
+        "At least one contact method (contactPhone, lineId, or whatsApp) must be provided",
       );
     }
 
@@ -211,6 +224,15 @@ export const updateReport = functions.https.onCall(
       throw new HttpsError(
         "invalid-argument",
         `Invalid data ${JSON.stringify(errs)}`,
+      );
+    }
+
+    // Manual validation: ensure at least one contact field is provided
+    if (!dto.data.contactPhone && !dto.data.lineId && !dto.data.whatsApp) {
+      logger.warn("No contact information provided in update");
+      throw new HttpsError(
+        "invalid-argument",
+        "At least one contact method (contactPhone, lineId, or whatsApp) must be provided",
       );
     }
 

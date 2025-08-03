@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api, ReportWithUser } from '../services/apiService';
-import { ReportStatus, CatType } from '../types/report';
+import { ReportStatus, CatType, ContactType } from '../types/report';
 import { Spinner } from '../components/Spinner';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '../theme';
@@ -324,11 +324,46 @@ export const AllReports = () => {
                     )}
                     <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.contact')}:</span> <span className="text-gray-800">
                       <a 
-                        href={`tel:${report.contactPhone}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-                        title={`${t('report.contact')}: ${report.contactPhone}`}
+                        href={
+                          report.lineId ? `https://line.me/ti/p/${report.lineId}` :
+                          report.whatsApp ? `https://wa.me/${report.whatsApp}` :
+                          report.contactPhone ? `tel:${report.contactPhone}` : '#'
+                        }
+                        className="text-blue-600 hover:text-blue-800 hover:underline transition-colors inline-flex items-center gap-1"
+                        title={`${t('report.contact')}: ${report.lineId || report.whatsApp || report.contactPhone || 'No contact info'}`}
+                        target={report.lineId || report.whatsApp ? "_blank" : undefined}
+                        rel={report.lineId || report.whatsApp ? "noopener noreferrer" : undefined}
                       >
-                        {report.contactPhone}
+                        {report.lineId ? (
+                          <>
+                            <img 
+                              src="/images/LINE_logo.svg" 
+                              alt="LINE" 
+                              width="16" 
+                              height="16" 
+                              className="inline-block"
+                            />
+                            {report.lineId}
+                          </>
+                        ) : report.whatsApp ? (
+                          <>
+                            <img 
+                              src="/images/WhatsApp_Logo.svg" 
+                              alt="WhatsApp" 
+                              width="16" 
+                              height="16" 
+                              className="inline-block"
+                            />
+                            {report.whatsApp}
+                          </>
+                        ) : report.contactPhone ? (
+                          <>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="#2563EB">
+                              <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                            </svg>
+                            {report.contactPhone}
+                          </>
+                        ) : 'No contact info'}
                       </a>
                     </span></p>
                     <p><span className="font-bold text-slate-700 bg-blue-50 px-2 py-1 rounded">{t('report.location')}:</span> <span className="text-gray-800">{report.location.description}</span></p>

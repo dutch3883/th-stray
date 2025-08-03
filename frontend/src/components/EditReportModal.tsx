@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Report, CatType, ResidentType } from '../types/report';
+import { Report, CatType, ResidentType, ContactType, ContactInfo } from '../types/report';
 import { api } from '../services/apiService';
 import { uploadImageAndGetUrl } from '../services/storageService';
 import LocationPicker from '../LocationPicker';
@@ -32,7 +32,7 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
   const [formData, setFormData] = useState<{
     numberOfCats: number;
     type: CatType;
-    contactPhone: string;
+    contactInfo: ContactInfo;
     description: string;
     canSpeakEnglish: boolean;
     isEmergency: boolean;
@@ -43,7 +43,12 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
   }>({
     numberOfCats: report.numberOfCats,
     type: report.type,
-    contactPhone: report.contactPhone,
+    contactInfo: {
+      type: report.lineId ? ContactType.LINE_ID : 
+            report.whatsApp ? ContactType.WHATSAPP : 
+            ContactType.PHONE,
+      value: report.lineId || report.whatsApp || report.contactPhone || ''
+    },
     description: report.description || '',
     canSpeakEnglish: report.canSpeakEnglish,
     isEmergency: report.isEmergency,
@@ -67,12 +72,18 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
     setIsSubmitting(true);
 
     try {
+      const contactFields = {
+        contactPhone: formData.contactInfo.type === ContactType.PHONE ? formData.contactInfo.value : '',
+        lineId: formData.contactInfo.type === ContactType.LINE_ID ? formData.contactInfo.value : undefined,
+        whatsApp: formData.contactInfo.type === ContactType.WHATSAPP ? formData.contactInfo.value : undefined,
+      };
+
       await api.updateReport({
         reportId: report.id,
         data: {
           numberOfCats: formData.numberOfCats,
           type: formData.type,
-          contactPhone: formData.contactPhone,
+          ...contactFields,
           description: formData.description || undefined,
           images: report.images,
           location: {
@@ -170,19 +181,50 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
             </select>
           </div>
 
-          {/* Contact Phone */}
+          {/* Contact Information */}
           <div>
-            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.contact.phone')}</label>
-            <input
-              type="tel"
-              pattern="[0-9]*"
-              inputMode="numeric"
-              placeholder={t('form.contact.phone_placeholder')}
-              className="w-full border rounded p-2"
-              value={formData.contactPhone}
-              onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-              disabled={isSubmitting}
-            />
+            <label className={`block mb-1 font-medium ${getThemeColor(true, isRescueMode)}`}>{t('form.contact.info')}</label>
+            
+            {/* Contact Type and Value */}
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={formData.contactInfo.type}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  contactInfo: { 
+                    ...formData.contactInfo, 
+                    type: e.target.value as ContactType 
+                  } 
+                })}
+                className="w-full border rounded p-2"
+                disabled={isSubmitting}
+              >
+                <option value={ContactType.PHONE}>{t('form.contact.type.phone')}</option>
+                <option value={ContactType.LINE_ID}>{t('form.contact.type.line_id')}</option>
+                <option value={ContactType.WHATSAPP}>{t('form.contact.type.whatsapp')}</option>
+              </select>
+              
+              <input
+                type={formData.contactInfo.type === ContactType.PHONE ? "tel" : "text"}
+                pattern={formData.contactInfo.type === ContactType.PHONE ? "[0-9]*" : undefined}
+                inputMode={formData.contactInfo.type === ContactType.PHONE ? "numeric" : "text"}
+                placeholder={
+                  formData.contactInfo.type === ContactType.PHONE ? "081-234-5678" :
+                  formData.contactInfo.type === ContactType.LINE_ID ? "Line ID" :
+                  "WhatsApp number"
+                }
+                className="w-full border rounded p-2"
+                value={formData.contactInfo.value}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  contactInfo: { 
+                    ...formData.contactInfo, 
+                    value: e.target.value 
+                  } 
+                })}
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
 
           {/* Additional Details */}

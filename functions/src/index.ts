@@ -310,10 +310,15 @@ export const cancelReport = functions.https.onCall(
     const reportData = reportDoc.data() as FirestoreReportData;
     const report = Report.fromFirestore(dto.reportId, reportData);
 
-    if (report.data.uid !== uid) {
+    // Check permissions: report owner, rescuer, or admin can cancel
+    const userRole = await getUserRole(uid);
+    const isOwner = report.data.uid === uid;
+    const isRescuerOrAdmin = userRole === "rescuer" || userRole === "admin";
+
+    if (!isOwner && !isRescuerOrAdmin) {
       throw new HttpsError(
         "permission-denied",
-        "You can only cancel your own reports",
+        "You can only cancel your own reports, or you must be a rescuer/admin",
       );
     }
 

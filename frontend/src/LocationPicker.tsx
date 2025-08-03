@@ -3,6 +3,7 @@ import { GoogleMap, useJsApiLoader, Libraries } from '@react-google-maps/api';
 import { useSearchParams } from 'react-router-dom';
 import { useLanguage } from './contexts/LanguageContext';
 import { env } from './config/environment';
+import { Spinner } from './components/Spinner';
 
 interface Location {
   lat: number;
@@ -16,12 +17,16 @@ interface LocationPickerProps {
   onCancel?: () => void;
 }
 
+interface LocationPickerInternalProps extends LocationPickerProps {
+  language: string;
+}
+
 const containerStyle = { width: '100%', height: '60vh' }; // responsive map height
 const fallbackCenter = { lat: 13.7563, lng: 100.5018 };   // Bangkok
 const TH_REGION = 'TH';
 
 // Static libraries array to prevent reloads
-const GOOGLE_MAPS_LIBRARIES: Libraries = ['places'];
+const GOOGLE_MAPS_LIBRARIES: Libraries = ['places','geometry'];
 
 // Bangkok and connected provinces boundaries
 const BANGKOK_BOUNDS = {
@@ -39,8 +44,8 @@ const isWithinBangkokArea = (lat: number, lng: number): boolean => {
          lng <= BANGKOK_BOUNDS.east;
 };
 
-export default function LocationPicker({ initialLocation, onConfirm, onCancel }: LocationPickerProps) {
-  const { t, language } = useLanguage();
+function LocationPickerInternal({ initialLocation, onConfirm, onCancel, language }: LocationPickerInternalProps) {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const bypassLocation = searchParams.get('bypassLocation') === 'true';
 
@@ -48,9 +53,8 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: env.googleMaps.apiKey,
     libraries: GOOGLE_MAPS_LIBRARIES,
-    language: 'th', // Use fixed language to prevent loader conflicts
-    region: 'TH',
-    nonce: '1234567890'
+    language: language,
+    region: 'TH'
   });
 
   const [center, setCenter] = useState<google.maps.LatLngLiteral>(initialLocation ?? fallbackCenter);
@@ -260,4 +264,23 @@ export default function LocationPicker({ initialLocation, onConfirm, onCancel }:
       </div>
     </div>
   );
+}
+
+// Wrapper component that handles language loading
+export default function LocationPicker(props: LocationPickerProps) {
+  const { savedLanguage } = useLanguage();
+
+  // Show loading while waiting for saved language to be determined
+  if (savedLanguage === null) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white p-4 rounded shadow">
+          <Spinner />
+        </div>
+      </div>
+    );
+  }
+
+  // Render LocationPicker with the saved language
+  return <LocationPickerInternal {...props} language={savedLanguage} />;
 }

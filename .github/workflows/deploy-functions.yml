@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - 'feature/**'
+      - 'fix/**'
       - 'bugfix/**'
       - 'hotfix/**'
       - 'release/**'

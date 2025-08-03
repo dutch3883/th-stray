@@ -12,6 +12,33 @@ interface ListReportsResponse {
     status: ReportStatus;
     type: CatType;
     createdAt: string; // ISO date string format
+    numberOfCats: number;
+    contactPhone?: string;
+    lineId?: string;
+    whatsApp?: string;
+    description?: string;
+    images: string[];
+    location: {
+      lat: number;
+      long: number;
+      description: string;
+    };
+    isEmergency: boolean;
+    residentType: 'resident' | 'tourist';
+    socialMedia?: string;
+    problem: string;
+    additionalLocationDetails?: string;
+    canSpeakEnglish: boolean;
+    uid: string;
+    updatedAt: string;
+    statusHistory: Array<{
+      from: ReportStatus;
+      to: ReportStatus;
+      changedAt: string;
+      changedBy: string;
+      remark: string;
+    }>;
+    reportId: number;
   }>;
 }
 
@@ -39,7 +66,9 @@ interface ErrorResponse {
 interface TestReportData {
   numberOfCats: number;
   type: CatType;
-  contactPhone: string;
+  contactPhone?: string;
+  lineId?: string;
+  whatsApp?: string;
   description: string;
   images: string[];
   location: {
@@ -47,6 +76,12 @@ interface TestReportData {
     long: number;
     description: string;
   };
+  isEmergency: boolean;
+  residentType: 'resident' | 'tourist';
+  socialMedia?: string;
+  problem: string;
+  additionalLocationDetails?: string;
+  canSpeakEnglish: boolean;
 }
 
 // Fast-check arbitraries for generating test data
@@ -191,7 +226,8 @@ describe('List Reports Function - Property Based Tests', () => {
       );
       
       if (response.status !== 200) {
-        throw new Error(`Failed to create test report: ${response.status} ${response.statusText}`);
+        const responseText = await response.text();
+        throw new Error(`Failed to create test report: ${response.status} ${response.statusText}. Response: ${responseText}`);
       }
       
       const result = await response.json() as CreateReportResponse;
@@ -300,7 +336,11 @@ describe('List Reports Function - Property Based Tests', () => {
         lat: randomLocation.lat + (Math.random() - 0.5) * 0.01, // Add some randomness
         long: randomLocation.long + (Math.random() - 0.5) * 0.01,
         description: randomLocation.desc
-      }
+      },
+      isEmergency: Math.random() < 0.2, // 20% chance of emergency
+      residentType: Math.random() < 0.7 ? 'resident' : 'tourist',
+      problem: `Test problem description ${Math.random().toString(36).substring(7)}`,
+      canSpeakEnglish: Math.random() < 0.5 // 50% chance
     };
   };
 
@@ -543,6 +583,7 @@ describe('List Reports Function - Property Based Tests', () => {
           data.result.forEach((report, index) => {
             const reportLabel = `Report ${index} (ID: ${report.id})`;
             
+            // Validate createdAt
             if (typeof report.createdAt !== 'string') {
               throw new Error(`${reportLabel}: Expected createdAt to be a string, but got ${typeof report.createdAt}`);
             }
@@ -560,6 +601,71 @@ describe('List Reports Function - Property Based Tests', () => {
             
             if (timestamp < oneYearAgo || timestamp > oneYearFromNow) {
               throw new Error(`${reportLabel}: Expected createdAt to be within reasonable range, but got "${report.createdAt}"`);
+            }
+            
+            // Validate new required fields
+            if (typeof report.numberOfCats !== 'number') {
+              throw new Error(`${reportLabel}: Expected numberOfCats to be a number, but got ${typeof report.numberOfCats}`);
+            }
+            
+            if (typeof report.isEmergency !== 'boolean') {
+              throw new Error(`${reportLabel}: Expected isEmergency to be a boolean, but got ${typeof report.isEmergency}`);
+            }
+            
+            if (typeof report.residentType !== 'string' || !['resident', 'tourist'].includes(report.residentType)) {
+              throw new Error(`${reportLabel}: Expected residentType to be 'resident' or 'tourist', but got "${report.residentType}"`);
+            }
+            
+            if (typeof report.problem !== 'string') {
+              throw new Error(`${reportLabel}: Expected problem to be a string, but got ${typeof report.problem}`);
+            }
+            
+            if (typeof report.canSpeakEnglish !== 'boolean') {
+              throw new Error(`${reportLabel}: Expected canSpeakEnglish to be a boolean, but got ${typeof report.canSpeakEnglish}`);
+            }
+            
+            // Validate contact information - at least one method should be present
+            const hasContactPhone = typeof report.contactPhone === 'string' && report.contactPhone.length > 0;
+            const hasLineId = typeof report.lineId === 'string' && report.lineId.length > 0;
+            const hasWhatsApp = typeof report.whatsApp === 'string' && report.whatsApp.length > 0;
+            
+            if (!hasContactPhone && !hasLineId && !hasWhatsApp) {
+              throw new Error(`${reportLabel}: Expected at least one contact method (contactPhone, lineId, or whatsApp), but none were provided`);
+            }
+            
+            // Validate location structure
+            if (!report.location || typeof report.location !== 'object') {
+              throw new Error(`${reportLabel}: Expected location to be an object, but got ${typeof report.location}`);
+            }
+            
+            if (typeof report.location.lat !== 'number') {
+              throw new Error(`${reportLabel}: Expected location.lat to be a number, but got ${typeof report.location.lat}`);
+            }
+            
+            if (typeof report.location.long !== 'number') {
+              throw new Error(`${reportLabel}: Expected location.long to be a number, but got ${typeof report.location.long}`);
+            }
+            
+            if (typeof report.location.description !== 'string') {
+              throw new Error(`${reportLabel}: Expected location.description to be a string, but got ${typeof report.location.description}`);
+            }
+            
+            // Validate images array
+            if (!Array.isArray(report.images)) {
+              throw new Error(`${reportLabel}: Expected images to be an array, but got ${typeof report.images}`);
+            }
+            
+            // Validate optional fields when present
+            if (report.description !== undefined && typeof report.description !== 'string') {
+              throw new Error(`${reportLabel}: Expected description to be a string when present, but got ${typeof report.description}`);
+            }
+            
+            if (report.socialMedia !== undefined && typeof report.socialMedia !== 'string') {
+              throw new Error(`${reportLabel}: Expected socialMedia to be a string when present, but got ${typeof report.socialMedia}`);
+            }
+            
+            if (report.additionalLocationDetails !== undefined && typeof report.additionalLocationDetails !== 'string') {
+              throw new Error(`${reportLabel}: Expected additionalLocationDetails to be a string when present, but got ${typeof report.additionalLocationDetails}`);
             }
           });
           
@@ -715,8 +821,129 @@ describe('List Reports Function - Property Based Tests', () => {
       const errorData = await response.json() as ErrorResponse;
       expect(errorData).toHaveProperty('error');
       expect(errorData.error).toHaveProperty('message');
-      expect(errorData.error.message).toBe('Operation listReports requires roles: admin, rescuer');
-      expect(errorData.error).toHaveProperty('status', 'PERMISSION_DENIED');
-    });
+          expect(errorData.error.message).toBe('Operation listReports requires roles: admin, rescuer');
+    expect(errorData.error).toHaveProperty('status', 'PERMISSION_DENIED');
   });
+
+  it('should return reports with all new contact information fields', async () => {
+    // Clear previous data
+    await clearAllEmulatorData();
+    
+    // Create reports with different contact methods
+    const reportWithPhone = {
+      numberOfCats: 1,
+      type: CatType.stray,
+      contactPhone: '0812345678',
+      description: 'Test with phone',
+      images: ['https://example.com/test-photo1.jpg'],
+      location: { lat: 13.7563, long: 100.5018, description: 'Location 1' },
+      isEmergency: false,
+      residentType: 'resident' as const,
+      problem: 'Test problem 1',
+      canSpeakEnglish: true
+    };
+
+    const reportWithLineId = {
+      numberOfCats: 2,
+      type: CatType.injured,
+      lineId: 'testuser123',
+      description: 'Test with LINE ID',
+      images: ['https://example.com/test-photo2.jpg'],
+      location: { lat: 13.7564, long: 100.5019, description: 'Location 2' },
+      isEmergency: true,
+      residentType: 'tourist' as const,
+      problem: 'Test problem 2',
+      canSpeakEnglish: false,
+      socialMedia: 'test@instagram',
+      additionalLocationDetails: 'Near the mall'
+    };
+
+    const reportWithWhatsApp = {
+      numberOfCats: 3,
+      type: CatType.sick,
+      whatsApp: '66812345678',
+      description: 'Test with WhatsApp',
+      images: ['https://example.com/test-photo3.jpg'],
+      location: { lat: 13.7565, long: 100.5020, description: 'Location 3' },
+      isEmergency: false,
+      residentType: 'resident' as const,
+      problem: 'Test problem 3',
+      canSpeakEnglish: true
+    };
+
+    // Create the reports
+    const reports = [reportWithPhone, reportWithLineId, reportWithWhatsApp];
+    const createdReportIds: number[] = [];
+
+    for (const reportData of reports) {
+      const response = await fetch(
+        'http://localhost:5001/th-stray/asia-northeast1/createReport',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ data: reportData }),
+        }
+      );
+      
+      expect(response.status).toBe(200);
+      const result = await response.json() as CreateReportResponse;
+      createdReportIds.push(result.result.id);
+    }
+
+    // List reports and verify structure
+    const listResponse = await callListReports({
+      sortBy: 'createdAt',
+      sortOrder: 'desc'
+    });
+
+    expect(listResponse.status).toBe(200);
+    const data = await listResponse.json() as ListReportsResponse;
+    expect(data).toHaveProperty('result');
+    expect(Array.isArray(data.result)).toBe(true);
+    expect(data.result.length).toBeGreaterThanOrEqual(3);
+
+    // Find our created reports and validate their contact fields
+    const phoneReport = data.result.find(r => r.contactPhone === '0812345678');
+    const lineReport = data.result.find(r => r.lineId === 'testuser123');
+    const whatsAppReport = data.result.find(r => r.whatsApp === '66812345678');
+
+    // Validate phone report
+    expect(phoneReport).toBeDefined();
+    if (phoneReport) {
+      expect(phoneReport.contactPhone).toBe('0812345678');
+      expect(phoneReport.lineId).toBeUndefined();
+      expect(phoneReport.whatsApp).toBeUndefined();
+      expect(phoneReport.isEmergency).toBe(false);
+      expect(phoneReport.residentType).toBe('resident');
+      expect(phoneReport.canSpeakEnglish).toBe(true);
+    }
+
+    // Validate LINE report
+    expect(lineReport).toBeDefined();
+    if (lineReport) {
+      expect(lineReport.lineId).toBe('testuser123');
+      expect(lineReport.contactPhone).toBeUndefined();
+      expect(lineReport.whatsApp).toBeUndefined();
+      expect(lineReport.isEmergency).toBe(true);
+      expect(lineReport.residentType).toBe('tourist');
+      expect(lineReport.canSpeakEnglish).toBe(false);
+      expect(lineReport.socialMedia).toBe('test@instagram');
+      expect(lineReport.additionalLocationDetails).toBe('Near the mall');
+    }
+
+    // Validate WhatsApp report
+    expect(whatsAppReport).toBeDefined();
+    if (whatsAppReport) {
+      expect(whatsAppReport.whatsApp).toBe('66812345678');
+      expect(whatsAppReport.contactPhone).toBeUndefined();
+      expect(whatsAppReport.lineId).toBeUndefined();
+      expect(whatsAppReport.isEmergency).toBe(false);
+      expect(whatsAppReport.residentType).toBe('resident');
+      expect(whatsAppReport.canSpeakEnglish).toBe(true);
+    }
+  });
+});
 }); 

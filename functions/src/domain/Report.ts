@@ -49,7 +49,9 @@ export interface ReportData {
   uid: string;
   numberOfCats: number;
   type: CatType;
-  contactPhone: string;
+  contactPhone?: string;
+  lineId?: string;
+  whatsApp?: string;
   description?: string;
   images: string[];
   location: LocationDto;
@@ -87,7 +89,9 @@ export class Report {
       uid: data.uid || "",
       numberOfCats: data.numberOfCats || 0,
       type: data.type || CatType.stray,
-      contactPhone: data.contactPhone || "",
+      contactPhone: data.contactPhone,
+      lineId: data.lineId,
+      whatsApp: data.whatsApp,
       description: data.description,
       images: data.images || [],
       location: data.location || { lat: 0, long: 0, description: "" },

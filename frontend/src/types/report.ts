@@ -17,6 +17,18 @@ export enum ResidentType {
   TOURIST = 'tourist'
 }
 
+export enum ContactType {
+  PHONE = 'phone',
+  LINE_ID = 'line-id',
+  WHATSAPP = 'whatsapp'
+}
+
+// Contact information structure
+export interface ContactInfo {
+  type: ContactType;
+  value: string;
+}
+
 // Base location interface
 export interface Location {
   lat: number;
@@ -30,7 +42,9 @@ export interface ReportDTO {
   status: ReportStatus;
   type: CatType;
   numberOfCats: number;
-  contactPhone: string;
+  contactPhone?: string;
+  lineId?: string;
+  whatsApp?: string;
   description?: string;
   images: string[];
   location: Location;

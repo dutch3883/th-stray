@@ -3,7 +3,7 @@ import { User } from 'firebase/auth';
 import {api} from '../services/apiService';
 import { uploadImageAndGetUrl } from '../services/storageService';
 import LocationPicker from '../LocationPicker';
-import { CatType, ResidentType } from '../types/report';
+import { CatType, ResidentType, ContactType, ContactInfo } from '../types/report';
 import { useTheme } from '../contexts/ThemeContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getThemeColor, getThemeBg, getButtonGradient, getSecondaryButtonGradient } from '../utils/themeUtils';
@@ -25,7 +25,7 @@ export default function ReportForm({ user }: ReportFormProps) {
   const [formData, setFormData] = useState<{
     type: CatType;
     numberOfCats: number | 'not sure';
-    contactPhone: string;
+    contactInfo: ContactInfo;
     description: string;
     canSpeakEnglish: boolean | null;
     isEmergency: boolean | null;
@@ -36,7 +36,10 @@ export default function ReportForm({ user }: ReportFormProps) {
   }>({
     type: CatType.STRAY,
     numberOfCats: 1,
-    contactPhone: '',
+    contactInfo: {
+      type: ContactType.PHONE,
+      value: ''
+    },
     description: '',
     canSpeakEnglish: null,
     isEmergency: null,
@@ -88,10 +91,16 @@ export default function ReportForm({ user }: ReportFormProps) {
       const uploadedImageUrls = await Promise.all(uploadPromises);
 
       // Create report with uploaded image URLs and converted number
+      const contactFields = {
+        contactPhone: formData.contactInfo.type === ContactType.PHONE ? formData.contactInfo.value : '',
+        lineId: formData.contactInfo.type === ContactType.LINE_ID ? formData.contactInfo.value : undefined,
+        whatsApp: formData.contactInfo.type === ContactType.WHATSAPP ? formData.contactInfo.value : undefined,
+      };
+
       await api.createReport({
         numberOfCats: formData.numberOfCats === 'not sure' ? 0 : formData.numberOfCats,
         type: formData.type,
-        contactPhone: formData.contactPhone,
+        ...contactFields,
         description: formData.description || undefined,
         images: uploadedImageUrls,
         location: {
@@ -112,7 +121,10 @@ export default function ReportForm({ user }: ReportFormProps) {
       setFormData({
         type: CatType.STRAY,
         numberOfCats: 1,
-        contactPhone: '',
+        contactInfo: {
+          type: ContactType.PHONE,
+          value: ''
+        },
         description: '',
         canSpeakEnglish: null,
         isEmergency: null,
@@ -216,21 +228,53 @@ export default function ReportForm({ user }: ReportFormProps) {
               </select>
             </div>
 
-            {/* เบอร์โทร */}
+            {/* Contact Information */}
             <div className="space-y-2">
               <label className={`block text-sm font-semibold ${getThemeColor(true, isRescueMode)}`}>
-                {t('form.contact.phone')}
+                {t('form.contact.info')}
               </label>
-              <input
-                type="tel"
-                pattern="[0-9]*"
-                inputMode="numeric"
-                placeholder="081-234-5678"
-                className="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white"
-                value={formData.contactPhone}
-                onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                disabled={isSubmitting}
-              />
+              
+              {/* Contact Type Selector */}
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={formData.contactInfo.type}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    contactInfo: { 
+                      ...formData.contactInfo, 
+                      type: e.target.value as ContactType 
+                    } 
+                  })}
+                  className="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white"
+                  disabled={isSubmitting}
+                >
+                  <option value={ContactType.PHONE}>{t('form.contact.type.phone')}</option>
+                  <option value={ContactType.LINE_ID}>{t('form.contact.type.line_id')}</option>
+                  <option value={ContactType.WHATSAPP}>{t('form.contact.type.whatsapp')}</option>
+                </select>
+                
+                {/* Contact Value Input */}
+                <input
+                  type={formData.contactInfo.type === ContactType.PHONE ? "tel" : "text"}
+                  pattern={formData.contactInfo.type === ContactType.PHONE ? "[0-9]*" : undefined}
+                  inputMode={formData.contactInfo.type === ContactType.PHONE ? "numeric" : "text"}
+                  placeholder={
+                    formData.contactInfo.type === ContactType.PHONE ? "081-234-5678" :
+                    formData.contactInfo.type === ContactType.LINE_ID ? "Line ID" :
+                    "WhatsApp number"
+                  }
+                  className="w-full border-2 border-gray-200 rounded-lg p-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white"
+                  value={formData.contactInfo.value}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    contactInfo: { 
+                      ...formData.contactInfo, 
+                      value: e.target.value 
+                    } 
+                  })}
+                  disabled={isSubmitting}
+                />
+              </div>
             </div>
 
             {/* รายละเอียดเพิ่มเติม */}

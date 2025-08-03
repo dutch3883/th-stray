@@ -24,7 +24,9 @@ export interface ReportWithUser extends ReportDTO {
 export interface CreateReportParams {
   numberOfCats: number;
   type: CatType;
-  contactPhone: string;
+  contactPhone?: string;
+  lineId?: string;
+  whatsApp?: string;
   description?: string;
   images: string[];
   location: Location;

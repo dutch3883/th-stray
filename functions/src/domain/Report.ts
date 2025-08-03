@@ -221,15 +221,18 @@ export class Report {
   toFirestore(): Omit<ReportData, "id"> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...rest } = this.data;
-    
+
     // Filter out undefined values to prevent Firestore errors
-    const filteredData = Object.entries(rest).reduce((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = value;
-      }
-      return acc;
-    }, {} as any);
-    
+    const filteredData = Object.entries(rest).reduce(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          (acc as Record<string, unknown>)[key] = value;
+        }
+        return acc;
+      },
+      {} as Omit<ReportData, "id">,
+    );
+
     return filteredData;
   }
 

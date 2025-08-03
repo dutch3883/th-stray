@@ -80,8 +80,12 @@ declare global {
   }
 }
 
-export const MapView = () => {
-  const { t, language } = useLanguage();
+interface MapViewProps {
+  language: string;
+}
+
+const MapViewInternal = ({ language }: MapViewProps) => {
+  const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   
@@ -1367,4 +1371,21 @@ export const MapView = () => {
       />
     </div>
   );
+};
+
+// Wrapper component that handles language loading
+export const MapView = () => {
+  const { savedLanguage } = useLanguage();
+
+  // Show loading while waiting for saved language to be determined
+  if (savedLanguage === null) {
+    return (
+      <div className="h-[calc(100vh-64px)] w-full flex items-center justify-center">
+        <Spinner />
+      </div>
+    );
+  }
+
+  // Render MapView with the saved language
+  return <MapViewInternal language={savedLanguage} />;
 }; 

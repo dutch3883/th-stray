@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Language, translationService } from '../services/translationService';
 import { useAuth } from '../hooks/useAuth';
+import { logDebug } from '../services/LoggingService';
 
 interface LanguageContextType {
   language: Language;
+  savedLanguage: Language | null;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
   getDualLanguageText: (key: string) => string;
@@ -19,12 +21,23 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [language, setLanguageState] = useState<Language>(DEFAULT_LANGUAGE);
   const [savedLanguage, setSavedLanguage] = useState<Language | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  logDebug("language value in context start", language);
+  logDebug("savedLanguage value in context start", savedLanguage);
 
   // Load saved language from localStorage on mount or when user changes
   useEffect(() => {
+    if(user !== null && user !== undefined) {
     const storageKey = user ? `${LANGUAGE_STORAGE_KEY}_${user.uid}` : LANGUAGE_STORAGE_KEY;
     const savedLang = localStorage.getItem(storageKey) as Language | null;
-    setSavedLanguage(savedLang);
+    logDebug("savedLang value in local storage", savedLang);
+    
+    // Always set savedLanguage to the result (null or actual value)
+    // If no saved language exists, use default
+    const finalLanguage = savedLang || DEFAULT_LANGUAGE;
+    logDebug(`finalLanguage value in context ${finalLanguage} user ${user?.uid}`);
+    setSavedLanguage(finalLanguage);
+    setLanguageState(finalLanguage);
+  }
   }, [user]);
 
   // Update current language when saved language is loaded
@@ -47,6 +60,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const setLanguage = (lang: Language) => {
+    logDebug("manual set language", lang);
     setLanguageState(lang);
     setSavedLanguage(lang);
     const storageKey = user ? `${LANGUAGE_STORAGE_KEY}_${user.uid}` : LANGUAGE_STORAGE_KEY;
@@ -66,8 +80,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return `${currentText} / ${otherText}`;
   };
 
+  logDebug("language value in context end", language);
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, getDualLanguageText }}>
+    <LanguageContext.Provider value={{ language, savedLanguage, setLanguage, t, getDualLanguageText }}>
       {children}
     </LanguageContext.Provider>
   );

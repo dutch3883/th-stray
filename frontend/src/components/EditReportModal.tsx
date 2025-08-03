@@ -75,7 +75,11 @@ export const EditReportModal: React.FC<EditReportModalProps> = ({
           contactPhone: formData.contactPhone,
           description: formData.description || undefined,
           images: report.images,
-          location: report.location,
+          location: {
+            lat: location.lat,
+            long: location.lng,
+            description: location.description,
+          },
           canSpeakEnglish: formData.canSpeakEnglish,
           isEmergency: formData.isEmergency,
           residentType: formData.residentType,

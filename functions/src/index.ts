@@ -489,9 +489,19 @@ function serializeResponse<T>(data: T): T {
 export const listReports = functions.https.onCall(
   { region: "asia-northeast1" },
   async (req) => {
-    logger.info("listReports", { uid: req.auth?.uid, data: req.data });
-    await checkAuthorization(req, "listReports");
+    const startTime = Date.now();
+    logger.info("listReports started", { uid: req.auth?.uid, data: req.data });
 
+    // Step 1: Authorization
+    const authStartTime = Date.now();
+    await checkAuthorization(req, "listReports");
+    const authEndTime = Date.now();
+    logger.info("listReports - authorization completed", {
+      duration: authEndTime - authStartTime + "ms",
+    });
+
+    // Step 2: Validation
+    const validationStartTime = Date.now();
     const dto = plainToInstance(ListReportsRequestDto, req.data);
     const errs = await validate(dto);
     if (errs.length) {
@@ -501,8 +511,14 @@ export const listReports = functions.https.onCall(
         `Invalid data ${JSON.stringify(errs)}`,
       );
     }
+    const validationEndTime = Date.now();
+    logger.info("listReports - validation completed", {
+      duration: validationEndTime - validationStartTime + "ms",
+    });
 
     try {
+      // Step 3: Query building
+      const queryBuildStartTime = Date.now();
       let query: admin.firestore.Query = db.collection("reports");
 
       // Apply filters if provided
@@ -512,37 +528,98 @@ export const listReports = functions.https.onCall(
       if (dto.type) {
         query = query.where("type", "==", dto.type);
       }
-
-      // Get all documents that match the filters
-      const snapshot = await query.get();
-      let reports = snapshot.docs.map((doc) => {
-        const data = doc.data() as unknown as FirestoreReportData;
-        return {
-          id: data.reportId,
-          ...(() => {
-            const report = Report.fromFirestore(data.reportId, data).data;
-            const plain = instanceToPlain(report);
-            return plain;
-          })(),
-        };
+      const queryBuildEndTime = Date.now();
+      logger.info("listReports - query building completed", {
+        duration: queryBuildEndTime - queryBuildStartTime + "ms",
+        hasStatusFilter: !!dto.status,
+        hasTypeFilter: !!dto.type,
+        sortBy: dto.sortBy,
+        sortOrder: dto.sortOrder,
       });
+
+      let reports: Array<{ id: number } & Record<string, unknown>>;
+
+      // Step 4: Firestore execution and data transformation
+      const firestoreStartTime = Date.now();
 
       // Apply sorting manually if filters are present
       if (dto.status || dto.type) {
+        logger.info("listReports - using manual sorting due to filters");
+
+        // Get all documents that match the filters
+        const snapshot = await query.get();
+        const firestoreQueryEndTime = Date.now();
+        logger.info("listReports - filtered query executed", {
+          duration: firestoreQueryEndTime - firestoreStartTime + "ms",
+          documentCount: snapshot.docs.length,
+        });
+
+        // Transform documents
+        const transformStartTime = Date.now();
+        reports = snapshot.docs.map((doc) => {
+          const data = doc.data() as unknown as FirestoreReportData;
+          return {
+            id: data.reportId,
+            ...(() => {
+              const report = Report.fromFirestore(data.reportId, data).data;
+              const plain = instanceToPlain(report);
+              return plain;
+            })(),
+          };
+        });
+        const transformEndTime = Date.now();
+        logger.info("listReports - document transformation completed", {
+          duration: transformEndTime - transformStartTime + "ms",
+          reportCount: reports.length,
+        });
+
+        // Manual sorting
+        const sortStartTime = Date.now();
         reports.sort((a, b) => {
           const aValue = a[dto.sortBy as keyof typeof a];
           const bValue = b[dto.sortBy as keyof typeof b];
 
-          if (dto.sortOrder === "asc") {
-            return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-          } else {
-            return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-          }
+          // Type-safe comparison function
+          const compareValues = (valA: unknown, valB: unknown): number => {
+            // Handle null/undefined cases
+            if (valA == null && valB == null) return 0;
+            if (valA == null) return -1;
+            if (valB == null) return 1;
+
+            // Convert to comparable values
+            const a =
+              typeof valA === "object" && valA !== null && "toISOString" in valA
+                ? (valA as Date).toISOString()
+                : String(valA);
+            const b =
+              typeof valB === "object" && valB !== null && "toISOString" in valB
+                ? (valB as Date).toISOString()
+                : String(valB);
+
+            return a < b ? -1 : a > b ? 1 : 0;
+          };
+
+          const comparison = compareValues(aValue, bValue);
+          return dto.sortOrder === "asc" ? comparison : -comparison;
+        });
+        const sortEndTime = Date.now();
+        logger.info("listReports - manual sorting completed", {
+          duration: sortEndTime - sortStartTime + "ms",
         });
       } else {
+        logger.info("listReports - using Firestore built-in sorting");
+
         // If no filters, use Firestore's built-in sorting
         query = query.orderBy(dto.sortBy, dto.sortOrder);
         const sortedSnapshot = await query.get();
+        const firestoreQueryEndTime = Date.now();
+        logger.info("listReports - sorted query executed", {
+          duration: firestoreQueryEndTime - firestoreStartTime + "ms",
+          documentCount: sortedSnapshot.docs.length,
+        });
+
+        // Transform documents
+        const transformStartTime = Date.now();
         reports = sortedSnapshot.docs.map((doc) => {
           const data = doc.data() as unknown as FirestoreReportData;
           return {
@@ -554,17 +631,43 @@ export const listReports = functions.https.onCall(
             })(),
           };
         });
+        const transformEndTime = Date.now();
+        logger.info("listReports - document transformation completed", {
+          duration: transformEndTime - transformStartTime + "ms",
+          reportCount: reports.length,
+        });
       }
 
-      // Extract unique user IDs from reports
+      const firestoreEndTime = Date.now();
+      logger.info("listReports - Firestore operations completed", {
+        duration: firestoreEndTime - firestoreStartTime + "ms",
+      });
+
+      // Step 5: Extract unique user IDs
+      const userIdExtractionStartTime = Date.now();
       const userIds = [
         ...new Set(
           reports.map((report) => (report as unknown as { uid: string }).uid),
         ),
       ];
+      const userIdExtractionEndTime = Date.now();
+      logger.info("listReports - user ID extraction completed", {
+        duration: userIdExtractionEndTime - userIdExtractionStartTime + "ms",
+        uniqueUserCount: userIds.length,
+      });
 
-      // Fetch user details for all unique users
+      // Step 6: Fetch user details
+      const userFetchStartTime = Date.now();
       const users = await getUsersByIds(userIds);
+      const userFetchEndTime = Date.now();
+      logger.info("listReports - user details fetched", {
+        duration: userFetchEndTime - userFetchStartTime + "ms",
+        requestedUsers: userIds.length,
+        fetchedUsers: users.length,
+      });
+
+      // Step 7: Create user map and add user info to reports
+      const userMappingStartTime = Date.now();
       const userMap = new Map(users.map((user) => [user.uid, user]));
 
       // Add user information to each report
@@ -572,13 +675,43 @@ export const listReports = functions.https.onCall(
         ...report,
         user: userMap.get((report as unknown as { uid: string }).uid) || null,
       }));
-
-      logger.info("fetched reports with user info", {
-        count: reportsWithUsers.length,
+      const userMappingEndTime = Date.now();
+      logger.info("listReports - user mapping completed", {
+        duration: userMappingEndTime - userMappingStartTime + "ms",
       });
-      return serializeResponse(reportsWithUsers);
+
+      // Step 8: Serialize response
+      const serializationStartTime = Date.now();
+      const result = serializeResponse(reportsWithUsers);
+      const serializationEndTime = Date.now();
+      logger.info("listReports - serialization completed", {
+        duration: serializationEndTime - serializationStartTime + "ms",
+      });
+
+      const totalEndTime = Date.now();
+      logger.info("listReports completed successfully", {
+        totalDuration: totalEndTime - startTime + "ms",
+        finalReportCount: reportsWithUsers.length,
+        breakdown: {
+          authorization: authEndTime - authStartTime + "ms",
+          validation: validationEndTime - validationStartTime + "ms",
+          queryBuilding: queryBuildEndTime - queryBuildStartTime + "ms",
+          firestoreOps: firestoreEndTime - firestoreStartTime + "ms",
+          userIdExtraction:
+            userIdExtractionEndTime - userIdExtractionStartTime + "ms",
+          userFetch: userFetchEndTime - userFetchStartTime + "ms",
+          userMapping: userMappingEndTime - userMappingStartTime + "ms",
+          serialization: serializationEndTime - serializationStartTime + "ms",
+        },
+      });
+
+      return result;
     } catch (e) {
-      logger.error("firestore error", e);
+      const errorTime = Date.now();
+      logger.error("listReports failed", {
+        error: e,
+        totalDurationBeforeError: errorTime - startTime + "ms",
+      });
       throw new HttpsError("internal", `Could not fetch reports. Error: ${e}`);
     }
   },

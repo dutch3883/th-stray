@@ -1,16 +1,13 @@
 import * as admin from "firebase-admin";
+import * as logger from "firebase-functions/logger";
 
 export type UserRole = "reporter" | "rescuer" | "admin";
 
 export interface UserDetails {
   uid: string;
-  email: string;
-  displayName: string;
+  email?: string;
+  displayName?: string;
   photoURL?: string;
-  role: UserRole;
-  emailVerified: boolean;
-  createdAt: Date;
-  lastSignInTime: Date;
 }
 
 export interface UserSettings {
@@ -49,67 +46,83 @@ export async function getUserRole(uid: string): Promise<UserRole> {
 }
 
 export async function getUsersByIds(userIds: string[]): Promise<UserDetails[]> {
+  const startTime = Date.now();
+  logger.info("getUsersByIds started", {
+    requestedUserCount: userIds.length,
+  });
+
   try {
-    const userDetails: UserDetails[] = [];
-
-    // Get all users and filter by the provided IDs
+    // Step 1: Get all users from Firebase Auth
+    const listUsersStartTime = Date.now();
     const listUsersResult = await admin.auth().listUsers();
+    const listUsersEndTime = Date.now();
+    logger.info("getUsersByIds - listUsers completed", {
+      duration: listUsersEndTime - listUsersStartTime + "ms",
+      totalUsersFromAuth: listUsersResult.users.length,
+    });
 
-    // Create a set for faster lookup
+    // Step 2: Filter users by requested IDs
+    const filteringStartTime = Date.now();
     const userIdSet = new Set(userIds);
+    const matchedUsers = listUsersResult.users.filter((user) =>
+      userIdSet.has(user.uid),
+    );
+    const filteringEndTime = Date.now();
+    logger.info("getUsersByIds - user filtering completed", {
+      duration: filteringEndTime - filteringStartTime + "ms",
+      matchedUsers: matchedUsers.length,
+    });
 
-    // Filter users by the provided IDs
-    for (const userRecord of listUsersResult.users) {
-      if (userIdSet.has(userRecord.uid)) {
-        const role = await getUserRole(userRecord.uid);
+    // Step 3: Build user details (minimal fields only)
+    const buildingStartTime = Date.now();
+    const userDetails: UserDetails[] = matchedUsers.map((userRecord) => ({
+      uid: userRecord.uid,
+      email: userRecord.email || undefined,
+      displayName:
+        userRecord.displayName || userRecord.email?.split("@")[0] || undefined,
+      photoURL: userRecord.photoURL || undefined,
+    }));
+    const buildingEndTime = Date.now();
+    logger.info("getUsersByIds - user details building completed", {
+      duration: buildingEndTime - buildingStartTime + "ms",
+      builtUsers: userDetails.length,
+    });
 
-        userDetails.push({
-          uid: userRecord.uid,
-          email: userRecord.email || "",
-          displayName:
-            userRecord.displayName ||
-            userRecord.email?.split("@")[0] ||
-            "Unknown User",
-          photoURL: userRecord.photoURL || undefined,
-          role: role,
-          emailVerified: userRecord.emailVerified,
-          createdAt: new Date(userRecord.metadata.creationTime || Date.now()),
-          lastSignInTime: new Date(
-            userRecord.metadata.lastSignInTime || Date.now(),
-          ),
-        });
-      }
-    }
+    const totalEndTime = Date.now();
+    logger.info("getUsersByIds completed successfully (ULTRA-LIGHTWEIGHT)", {
+      totalDuration: totalEndTime - startTime + "ms",
+      breakdown: {
+        listUsers: listUsersEndTime - listUsersStartTime + "ms",
+        userFiltering: filteringEndTime - filteringStartTime + "ms",
+        userBuilding: buildingEndTime - buildingStartTime + "ms",
+      },
+      efficiency: {
+        requestedUsers: userIds.length,
+        foundUsers: userDetails.length,
+        totalAuthUsers: listUsersResult.users.length,
+        hitRate:
+          userIds.length > 0
+            ? Math.round((userDetails.length / userIds.length) * 100) + "%"
+            : "0%",
+      },
+      performance: {
+        oldTotalTime: "~3300ms",
+        newTotalTime: totalEndTime - startTime + "ms",
+        improvementFactor:
+          Math.round(3300 / (totalEndTime - startTime)) + "x faster",
+        optimizations: "no roles + minimal fields",
+      },
+    });
 
     return userDetails;
   } catch (error) {
+    const errorTime = Date.now();
+    logger.error("getUsersByIds failed", {
+      error: error,
+      totalDurationBeforeError: errorTime - startTime + "ms",
+      requestedUserCount: userIds.length,
+    });
     console.error("Error getting users by IDs:", error);
     throw error;
-  }
-}
-
-export async function getUserById(uid: string): Promise<UserDetails | null> {
-  try {
-    const userRecord = await admin.auth().getUser(uid);
-    const role = await getUserRole(uid);
-
-    return {
-      uid: userRecord.uid,
-      email: userRecord.email || "",
-      displayName:
-        userRecord.displayName ||
-        userRecord.email?.split("@")[0] ||
-        "Unknown User",
-      photoURL: userRecord.photoURL || undefined,
-      role: role,
-      emailVerified: userRecord.emailVerified,
-      createdAt: new Date(userRecord.metadata.creationTime || Date.now()),
-      lastSignInTime: new Date(
-        userRecord.metadata.lastSignInTime || Date.now(),
-      ),
-    };
-  } catch (error) {
-    console.error("Error getting user by ID:", error);
-    return null;
   }
 }
